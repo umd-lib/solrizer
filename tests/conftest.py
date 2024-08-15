@@ -1,11 +1,11 @@
 import pytest
 
-import solrizer.web
+from solrizer.web import create_app
 
 
 @pytest.fixture
 def app():
-    return solrizer.web.app
+    return create_app()
 
 
 @pytest.fixture

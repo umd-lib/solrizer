@@ -3,10 +3,20 @@ name = "solrizer"
 version = "1.0.0-dev"
 dependencies = [
     "flask",
+    "plastron-client",
+    "plastron-models",
+    "plastron-rdf",
+    "plastron-repo",
+    "plastron-utils",
+    "python-dotenv",
+    "requests-jwtauth",
 ]
+requires-python = ">=3.12"
 
 [project.optional-dependencies]
 test = [
+    "httpretty",
     "pytest",
     "pytest-cov",
+    "pytest-datadir",
 ]
