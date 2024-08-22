@@ -12,6 +12,7 @@ from plastron.repo import Repository, RepositoryResource
 from plastron.validation.vocabularies import Vocabulary
 from rdflib import URIRef, Literal
 
+from solrizer.indexers import IndexerError
 from solrizer.indexers.content_model import get_model_fields, get_data_fields, shorten_uri, get_object_fields, \
     language_suffix
 
@@ -35,10 +36,17 @@ def test_shorten_uri(uri, expected_value):
         ('en', '_en'),
         ('en-US', '_en_us'),
         ('ja-Latn', '_ja_latn'),
+        ('jpn-LATN', '_ja_latn'),
+        ('ger', '_de'),
     ]
 )
 def test_language_suffix(language, expected_value):
     assert language_suffix(language) == expected_value
+
+
+def test_invalid_language_suffix():
+    with pytest.raises(IndexerError):
+        language_suffix('invalid::tag')
 
 
 @pytest.mark.parametrize(

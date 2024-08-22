@@ -1,6 +1,7 @@
 import logging
 from typing import Iterable, Callable, Iterator
 
+from langcodes import standardize_tag, LanguageTagError
 from plastron.models.authorities import VocabularyTerm
 from plastron.namespaces import xsd, umdtype, namespace_manager
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty, RDFProperty
@@ -8,11 +9,10 @@ from plastron.rdfmapping.resources import RDFResource, RDFResourceBase
 from plastron.repo import Repository
 from rdflib import Literal, URIRef
 
-type SolrDoc = dict[str, str | int | list]
+from solrizer.indexers import SolrFields, IndexerContext, IndexerError
 
 logger = logging.getLogger(__name__)
 
-# field mappings for RDF literals with particular datatypes
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
     xsd.int: {'suffix': '__int', 'converter': int},
@@ -24,14 +24,24 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
     umdtype.accessionNumber: {'suffix': '__id'},
     umdtype.handle: {'suffix': '__id'},
 }
-# field mappings for fields with particular property names
+"""Field mappings for RDF literals with particular datatypes."""
+
 FIELD_ARGUMENTS_BY_ATTR_NAME = {
     'date': {'suffix': '__edtf'},
     'identifier': {'suffix': '__id'},
 }
+"""Field mappings for fields with particular property names."""
 
 
-def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrDoc:
+def content_model_fields(ctx: IndexerContext) -> SolrFields:
+    """Indexer function that adds fields generated from the indexed
+    resource's content model. Registered as the entry point
+    *content_model* in the `solrizer_indexers` entry point group."""
+    prefix = ctx.model_class.__name__.lower() + '__'
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=prefix)
+
+
+def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
     names to values."""
     logger.info(f'Converting {obj.uri}')
@@ -50,33 +60,67 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
 
 
 def get_linked_objects(prop: RDFObjectProperty, repo: Repository) -> Iterator[RDFResource]:
+    """Iterate over the URIs in `prop.values`, retrieving the resource at
+    each URI and returning it described using the `prop.object_class`."""
     for uri in prop.values:
         yield repo[uri].read().describe(prop.object_class)
 
 
-def get_child_documents(prefix: str, objects: Iterable[RDFResource], repo: Repository) -> list[SolrDoc]:
+def get_child_documents(prefix: str, objects: Iterable[RDFResource], repo: Repository) -> list[SolrFields]:
+    """Returns a list containing an index document for each resource in `objects`."""
     return [{'id': str(o.uri), **get_model_fields(o, repo=repo, prefix=prefix)} for o in objects]
 
 
 def language_suffix(language: str | None) -> str:
+    """Normalizes the `language` string by:
+
+    * standardizing using the `langcodes.standardize_tag()` function;
+      in particular, this changes 3-letter ISO 639 codes to their
+      2-letter equivalents (for example, "eng" becomes "en")
+    * converting to all lower case
+    * changing all "-" to "_"
+
+    Returns the normalized value, prepended with "_". If `language`
+    is `None`, returns an empty string instead.
+
+    ```pycon
+    >>> language_suffix('en')
+    '_en'
+    >>> language_suffix('en-US')
+    '_en_us'
+    >>> language_suffix('ja-Latn')
+    '_ja_latn'
+    >>> language_suffix('eng')
+    '_en'
+    >>> language_suffix('jpn-LATN')
+    '_ja-latn'
+    >>> language_suffix(None)
+    ''
+    ```
+    """
     if language is not None:
-        return '_' + language.lower().replace('-', '_')
+        try:
+            return '_' + standardize_tag(language).lower().replace('-', '_')
+        except LanguageTagError as e:
+            logger.error(str(e))
+            raise IndexerError(f'Unable to determine language suffix from "{language}"')
     else:
         return ''
 
 
-def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrDoc:
+def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
     """Get the dictionary of field key(s) and value(s) for the given data
     property using `get_field()`. All keys are prepended with the given
     `prefix`.
 
     If the property has a datatype found in `FIELD_ARGUMENTS_BY_DATATYPE`,
     the parameters for `get_field()` are taken from there. Similarly, if
-    the property has a name found in `FIELD_ARGUMENTS_BY_NAME`, arguments
+    the property has a name found in `FIELD_ARGUMENTS_BY_ATTR_NAME`, arguments
     are taken from there. Otherwise, the property is treated as text. For
-    unique language among the property's values, it creates a key by
-    appending "__txt_{language_code}" to the field. For the value(s) that
-    have no language code, the suffix is merely "__txt"."""
+    unique language among the property's values, it creates a key from the
+    property name followed by "__txt" and then followed by a language suffix,
+    as determined by `language_suffix()`.
+    """
     if prop.datatype in FIELD_ARGUMENTS_BY_DATATYPE:
         # special handling per datatype
         return get_field(prop, prefix, **FIELD_ARGUMENTS_BY_DATATYPE[prop.datatype])
@@ -97,7 +141,24 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrDoc:
             return fields
 
 
-def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '') -> SolrDoc:
+def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '') -> SolrFields:
+    """Get the dictionary of field key(s) and value(s) for the given object
+    property using `get_field()`. All keys are prepended with the given
+    `prefix`.
+
+    All properties get fields for their URI and CURIE values, suffixed as
+    "__uri" and "__curie", respectively.
+
+    If a property's values are from a controlled vocabulary, additional
+    fields are populated using the `VocabularyTerm` model. These fields
+    appear as siblings to the other top level fields.
+
+    If a property's values are the URIs of embedded (i.e., "hash URI")
+    or linked (i.e., child resources also in the repository) resources, adds
+    a field for that property whose value is a list of the indexing documents
+    for those embedded resources. This structure will establish a set of
+    nested documents once it is added to Solr.
+    """
     fields = {}
     fields.update(get_field(prop, prefix, '__uri'))
     fields.update(get_field(prop, prefix, '__curie', converter=shorten_uri))
@@ -127,8 +188,14 @@ def get_field(
     suffix: str = '__str',
     converter: Callable[[Literal | URIRef], str | int] = str,
     value_filter: Callable[[Literal | URIRef], bool] = lambda v: True,
-) -> SolrDoc:
-    """Convert a property to a `{field_name: value(s)}` format dictionary."""
+) -> SolrFields:
+    """Convert a property to a `{field_name: value(s)}` format dictionary.
+
+    If `value_filter` is given, only those values that pass the value filter
+    (i.e., return `True`) are included.
+
+    If `converter` is given, it is applied to the included values. Should
+    return a `str` or `int`. Default is `str()`."""
     name = prefix + prop.attr_name + suffix
     values = [converter(v) for v in prop.values if value_filter(v)]
     if prop.repeatable:

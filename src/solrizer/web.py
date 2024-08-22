@@ -6,9 +6,10 @@ from plastron.models import guess_model, ModelClassError
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
 from requests_jwtauth import HTTPBearerAuth
+from werkzeug.exceptions import InternalServerError
 
 from solrizer.errors import ResourceNotAvailable, NoResourceRequested, ProblemDetailError, problem_detail_response
-from solrizer.indexers.content_model import get_model_fields
+from solrizer.indexers import IndexerContext, IndexerError
 
 FCREPO_ENDPOINT = os.environ.get('FCREPO_ENDPOINT')
 FCREPO_JWT_TOKEN = os.environ.get('FCREPO_JWT_TOKEN')
@@ -32,18 +33,24 @@ def create_app():
         except RepositoryError as e:
             raise ResourceNotAvailable(uri=uri) from e
 
-        doc = {'id': uri}
-
         # dynamically determine the model_class
         try:
             model_class = guess_model(resource.describe(RDFResource))
         except ModelClassError as e:
-            app.logger.error(f'Unable to determine model class for {resource.url}')
+            app.logger.error(f'Unable to determine model class for {uri}')
             raise ResourceNotAvailable(uri=uri) from e
 
-        obj = resource.describe(model_class)
-        prefix = model_class.__name__.lower() + '__'
-        doc.update(get_model_fields(obj, repo=app.config['repo'], prefix=prefix))
+        ctx = IndexerContext(
+            repo=app.config['repo'],
+            resource=resource,
+            model_class=model_class,
+            doc={'id': uri},
+        )
+
+        try:
+            doc = ctx.run(['content_model'])
+        except IndexerError as e:
+            raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 
         return doc, {'Content-Type': 'application/json;charset=utf-8'}
 
