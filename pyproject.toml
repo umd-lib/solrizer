@@ -11,6 +11,8 @@ dependencies = [
     "plastron-repo",
     "plastron-utils",
     "python-dotenv",
+    "python-iso639",
+    "python-jsonpath",
     "requests-jwtauth",
     "uritemplate",
 ]
@@ -33,6 +35,23 @@ discoverability = "solrizer.indexers.discoverability:discoverability_fields"
 page_sequence = "solrizer.indexers.page_sequence:page_sequence_fields"
 iiif_links = "solrizer.indexers.iiif_links:iiif_links_fields"
 dates = "solrizer.indexers.dates:date_fields"
+facets = "solrizer.indexers.facets:facet_fields"
+
+[project.entry-points.solrizer_faceters]
+admin_set = "solrizer.faceters:AdminSetFacet"
+archival_collection = "solrizer.faceters:ArchivalCollectionFacet"
+contributor = "solrizer.faceters:ContributorFacet"
+creator = "solrizer.faceters:CreatorFacet"
+language = "solrizer.faceters:LanguageFacet"
+location = "solrizer.faceters:LocationFacet"
+presentation_set = "solrizer.faceters:PresentationSetFacet"
+publication_statu = "solrizer.faceters:PublicationStatusFacet"
+publisher = "solrizer.faceters:PublisherFacet"
+rdf_type = "solrizer.faceters:RDFTypeFacet"
+resource_type = "solrizer.faceters:ResourceTypeFacet"
+rights = "solrizer.faceters:RightsFacet"
+subject = "solrizer.faceters:SubjectFacet"
+visibility = "solrizer.faceters:VisibilityFacet"
 
 [tool.pytest.ini_options]
 # the datetime.datetime.utcnow() warning is coming from the httpretty code

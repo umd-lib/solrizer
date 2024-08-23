@@ -1,0 +1,158 @@
+{
+  "@context": {
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "vann": "http://purl.org/vocab/vann/"
+  },
+  "@graph": [
+    {
+      "@id": "http://vocab.lib.umd.edu/set#labor",
+      "dc:identifier": "labor",
+      "rdfs:label": "Labor"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#",
+      "rdfs:label": "Presentation Sets"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#worldsFairs",
+      "dc:identifier": "worldsFairs",
+      "rdfs:label": "World's Fairs"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#culturalPreservation",
+      "dc:identifier": "culturalPreservation",
+      "rdfs:label": "Cultural Preservation"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#facultyAndStaff",
+      "dc:identifier": "facultyAndStaff",
+      "rdfs:label": "UMD Faculty and Staff"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#diamondbackPhotos",
+      "dc:identifier": "diamondbackPhotos",
+      "rdfs:label": "Diamondback Photos"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#usGovPosters",
+      "dc:identifier": "usGovPosters",
+      "rdfs:label": "US Government Posters"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#performingArts",
+      "dc:identifier": "performingArts",
+      "rdfs:label": "Performing Arts"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#punkCollections",
+      "dc:identifier": "punkCollections",
+      "rdfs:label": "Punk Collections"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#kapCorrespondence",
+      "dc:identifier": "kapCorrespondence",
+      "rdfs:label": "Katherine Anne Porter Correspondence"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#prangePosters",
+      "dc:identifier": "prangePosters",
+      "rdfs:label": "Prange Posters and Wall Newspapers"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#mackayePunkFanzines",
+      "dc:identifier": "mackayePunkFanzines",
+      "rdfs:label": "Ian MacKaye Punk Fanzines"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#athletics",
+      "dc:identifier": "athletics",
+      "rdfs:label": "UMD Athletics"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#politics",
+      "dc:identifier": "politics",
+      "rdfs:label": "Politics and Civic Life"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#commercialBroadcasting",
+      "dc:identifier": "commercialBroadcasting",
+      "rdfs:label": "Commercial Broadcasting"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#umdStudentNewspapers",
+      "dc:identifier": "umdStudentNewspapers",
+      "rdfs:label": "UMD Student Newspapers"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#prangeChildrensBooks",
+      "dc:identifier": "prangeChildrensBooks",
+      "rdfs:label": "Prange Children's Books"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#publicBroadcasting",
+      "dc:identifier": "publicBroadcasting",
+      "rdfs:label": "Public Broadcasting"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#awr",
+      "dc:identifier": "awr",
+      "rdfs:label": "Advancing Workers' Rights"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#literature",
+      "dc:identifier": "literature",
+      "rdfs:label": "Literature and Rare Books"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#agriculturalLegacy",
+      "dc:identifier": "agriculturalLegacy",
+      "rdfs:label": "UMD Agricultural Legacy"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#test",
+      "dc:identifier": "test",
+      "rdfs:label": "Test Presentation Set"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#ntlPostcards",
+      "dc:identifier": "ntlPostcards",
+      "rdfs:label": "National Trust Library Postcards"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#musicDanceTheater",
+      "dc:identifier": "musicDanceTheater",
+      "rdfs:label": "UMD Music, Dance, and Theater"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#buildingsAndGrounds",
+      "dc:identifier": "buildingsAndGrounds",
+      "rdfs:label": "UMD Buildings and Grounds"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#marylandMaps",
+      "dc:identifier": "marylandMaps",
+      "rdfs:label": "Maryland Maps"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#studentLife",
+      "dc:identifier": "studentLife",
+      "rdfs:label": "UMD Student Life"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#maryland",
+      "dc:identifier": "maryland",
+      "rdfs:label": "Maryland and Historical Collections"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#postwarJapan",
+      "dc:identifier": "postwarJapan",
+      "rdfs:label": "Postwar Japan"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/set#lizLerman",
+      "dc:identifier": "lizLerman",
+      "rdfs:label": "Liz Lerman Dance Exchange"
+    }
+  ]
+}
