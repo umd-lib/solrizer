@@ -1,0 +1,5 @@
+<http://example.com/fcrepo/foo> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://pcdm.org/models#Object> .
+<http://example.com/fcrepo/foo> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://vocab.lib.umd.edu/model#Item> .
+<http://example.com/fcrepo/foo> <http://purl.org/dc/terms/title> "Moonpig" .
+<http://example.com/fcrepo/foo> <http://purl.org/dc/terms/subject> <http://example.com/fcrepo/foo#subject> .
+<http://example.com/fcrepo/foo#subject> <http://www.w3.org/2000/01/rdf-schema#label> "Test" .

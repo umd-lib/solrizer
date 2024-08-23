@@ -1,56 +1,53 @@
-import json
-from typing import Any
+import os
 
 from flask import Flask, request
-from werkzeug import Response
-from werkzeug.exceptions import HTTPException, BadRequest, NotFound
+from plastron.client import Client, Endpoint
+from plastron.models import guess_model, ModelClassError
+from plastron.rdfmapping.resources import RDFResource
+from plastron.repo import Repository, RepositoryError, RepositoryResource
+from requests_jwtauth import HTTPBearerAuth
 
-app = Flask(__name__)
+from solrizer.errors import ResourceNotAvailable, NoResourceRequested, ProblemDetailError, problem_detail_response
+from solrizer.indexers.content_model import get_model_fields
 
-
-class ProblemDetailError(HTTPException):
-    """Subclass of the Werkzeug `HTTPException` class that adds a `params`
-    dictionary that `as_problem_detail` uses to format the response details."""
-    def __init__(self, description=None, response=None, **params):
-        super().__init__(description, response)
-        self.params = params
-
-    def as_problem_detail(self) -> dict[str, Any]:
-        """Format the exception information in the RFC 9457 JSON Problem
-        Details format."""
-        return {
-            'status': self.code,
-            'title': self.name,
-            'details': self.description.format(self.params),
-        }
+FCREPO_ENDPOINT = os.environ.get('FCREPO_ENDPOINT')
+FCREPO_JWT_TOKEN = os.environ.get('FCREPO_JWT_TOKEN')
 
 
-class ResourceNotAvailable(ProblemDetailError, NotFound):
-    name = 'Resource is not available'
-    description = 'Resource at "{uri}" is not available from the repository.'
+def create_app():
+    app = Flask(__name__)
 
+    client = Client(endpoint=Endpoint(FCREPO_ENDPOINT), auth=HTTPBearerAuth(FCREPO_JWT_TOKEN))
+    app.config['repo'] = Repository(client=client)
 
-class NoResourceRequested(ProblemDetailError, BadRequest):
-    name = 'No resource requested'
-    description = 'No resource URL or path was provided as part of this request.'
+    @app.route('/doc')
+    def get_doc():
+        uri = request.args.get('uri')
 
+        if uri is None:
+            raise NoResourceRequested()
 
-@app.errorhandler(ProblemDetailError)
-def problem_detail_response(e: ProblemDetailError) -> Response:
-    """Return a JSON Problem Detail (RFC 9457) for HTTP errors."""
-    # start with the correct headers and status code from the error
-    response = e.get_response()
-    # replace the body with JSON
-    response.data = json.dumps(e.as_problem_detail())
-    response.content_type = 'application/problem+json'
-    return response
+        try:
+            resource: RepositoryResource = app.config['repo'][uri].read()
+        except RepositoryError as e:
+            raise ResourceNotAvailable(uri=uri) from e
 
+        doc = {'id': uri}
 
-@app.route('/doc')
-def get_doc():
-    uri = request.args.get('uri')
+        # dynamically determine the model_class
+        try:
+            model_class = guess_model(resource.describe(RDFResource))
+        except ModelClassError as e:
+            app.logger.error(f'Unable to determine model class for {resource.url}')
+            raise ResourceNotAvailable(uri=uri) from e
 
-    if uri is None:
-        raise NoResourceRequested()
+        obj = resource.describe(model_class)
+        prefix = model_class.__name__.lower() + '__'
+        doc.update(get_model_fields(obj, repo=app.config['repo'], prefix=prefix))
 
-    return {'id': uri}
+        return doc, {'Content-Type': 'application/json;charset=utf-8'}
+
+    # serve error responses using the RFC 9457 Problem Detail JSON format
+    app.register_error_handler(ProblemDetailError, problem_detail_response)
+
+    return app

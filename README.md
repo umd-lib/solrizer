@@ -4,7 +4,7 @@ RDF to Solr document converter microservice
 
 ## Development Setup
 
-Requires Python 3.11
+Requires Python 3.12
 
 ```zsh
 git clone git@github.com:umd-lib/solrizer.git
@@ -14,13 +14,17 @@ source .venv/bin/activate
 pip install -e '.[test]'
 ```
 
+Create a `.env` file with the following contents:
+
+```
+FLASK_DEBUG=1
+FCREPO_ENDPOINT={URL of fcrepo instance}
+FCREPO_JWT_TOKEN={authentication token}
+```
+
 ### Running
 
-Enabling debug mode provides live reloading when files are changed, as 
-well as more detailed error pages.
-
 ```zsh
-export FLASK_DEBUG=1
 flask --app solrizer.web run
 ```
 
