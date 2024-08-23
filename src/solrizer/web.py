@@ -48,7 +48,10 @@ def create_app():
         )
 
         try:
-            doc = ctx.run(['content_model'])
+            doc = ctx.run([
+                'content_model',
+                'discoverability',
+            ])
         except IndexerError as e:
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 

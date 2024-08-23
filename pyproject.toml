@@ -24,3 +24,4 @@ test = [
 
 [project.entry-points.solrizer_indexers]
 content_model = "solrizer.indexers.content_model:content_model_fields"
+discoverability = "solrizer.indexers.discoverability:discoverability_fields"
