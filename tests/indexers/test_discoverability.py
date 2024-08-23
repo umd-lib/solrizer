@@ -44,6 +44,7 @@ def test_discoverability(monkeypatch, obj, expected_fields):
         resource=MagicMock(spec=RepositoryResource),
         model_class=RDFResource,
         doc={'id': 'foo'},
+        config={},
     )
     monkeypatch.setattr(context, 'obj', obj)
     fields = discoverability_fields(context)
