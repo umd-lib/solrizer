@@ -10,19 +10,6 @@ from solrizer.indexers.page_sequence import get_members_by_uri, follow_sequence,
 
 
 @pytest.fixture
-def proxies() -> SolrFields:
-    return {
-        'proxy__proxy_for__uri': 'url1',
-        'proxy__next': [{
-            'proxy__proxy_for__uri': 'url2',
-            'proxy__next': [{
-                'proxy__proxy_for__uri': 'url3',
-            }]
-        }]
-    }
-
-
-@pytest.fixture
 def doc(proxies) -> SolrFields:
     return {
         'id': 'foo',

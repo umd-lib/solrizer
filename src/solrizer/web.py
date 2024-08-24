@@ -26,6 +26,9 @@ def create_app():
         'page_sequence',
         'iiif_links',
     ]
+    app.config['iiif_manifests_url_pattern'] = os.environ.get('IIIF_MANIFESTS_URL_PATTERN')
+    app.config['iiif_thumbnail_url_pattern'] = os.environ.get('IIIF_THUMBNAIL_URL_PATTERN')
+    app.config['iiif_identifier_prefix'] = os.environ.get('IIIF_IDENTIFIER_PREFIX')
 
     @app.route('/doc')
     def get_doc():
