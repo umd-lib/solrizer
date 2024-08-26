@@ -1,3 +1,25 @@
+"""
+Indexer Name: **`content_model`**
+
+Indexer implementation function: `content_model_fields()`
+
+Prerequisites: None
+
+Output field patterns:
+
+| Field pattern                 | Python Type            | Solr Type                   |
+|-------------------------------|------------------------|-----------------------------|
+| `{model}__{attr}__int`        | `int`                  | integer                     |
+| `{model}__{attr}__id`         | `str`                  | string                      |
+| `{model}__{attr}__dt`         | `datetime`             | datetime range              |
+| `{model}__{attr}__edtf`       | `str`                  | string                      |
+| `{model}__{attr}__txt`        | `str`                  | tokenized text              |
+| `{model}__{attr}__txt_{lang}` | `str`                  | tokenized text for `{lang}` |
+| `{model}__{attr}__uri`        | `str`                  | string                      |
+| `{model}__{attr}__curie`      | `str`                  | string                      |
+| `{model}__{attr}`             | `list[dict[str, ...]]` | nested document             |
+"""
+
 import logging
 from typing import Iterable, Callable, Iterator
 

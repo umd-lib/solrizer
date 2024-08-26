@@ -1,3 +1,20 @@
+"""
+Indexer Name: **`discoverability`**
+
+Indexer implementation function: `discoverability_fields()`
+
+Prerequisites: None
+
+Output fields:
+
+| Field             | Python Type | Solr Type |
+|-------------------|-------------|-----------|
+| `is_published`    | `bool`      | boolean   |
+| `is_hidden`       | `bool`      | boolean   |
+| `is_top_level`    | `bool`      | boolean   |
+| `is_discoverable` | `bool`      | boolean   |
+"""
+
 from plastron.namespaces import umdaccess
 
 from solrizer.indexers import IndexerContext, SolrFields
