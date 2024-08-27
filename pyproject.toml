@@ -3,6 +3,7 @@ name = "solrizer"
 version = "1.0.0-dev"
 dependencies = [
     "flask",
+    "langcodes",
     "plastron-client",
     "plastron-models",
     "plastron-rdf",
@@ -20,3 +21,7 @@ test = [
     "pytest-cov",
     "pytest-datadir",
 ]
+
+[project.entry-points.solrizer_indexers]
+content_model = "solrizer.indexers.content_model:content_model_fields"
+discoverability = "solrizer.indexers.discoverability:discoverability_fields"
