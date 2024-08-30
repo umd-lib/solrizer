@@ -22,12 +22,20 @@ and the value is a `"package.path:function_name"` string.
 The indexers are run via the `IndexerContext.run()` instance method. It
 takes a list of indexer names to run, and returns the accumulated dictionary
 of fields suitable for sending to Solr.
+
+```python
+from solrizer.indexers import IndexerContext
+
+ctx = IndexerContext(repo=..., resource=..., model_class=..., doc=...)
+
+doc = ctx.run(['content_model', 'discoverability', 'page_sequence'])
+```
 """
 import importlib.metadata
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Iterable
+from typing import Iterable, Mapping, Any
 
 from plastron.rdfmapping.resources import RDFResourceBase
 from plastron.repo import RepositoryResource, Repository
@@ -36,14 +44,14 @@ type SolrFields = dict[str, str | int | list | dict]
 """Type alias for Solr index document dictionaries."""
 
 AVAILABLE_INDEXERS = importlib.metadata.entry_points(group='solrizer_indexers')
-"""Available processors determined from the `solrizer.indexers` entry point
+"""Available processors determined from the `solrizer_indexers` entry point
 group."""
 
 logger = logging.getLogger(__name__)
 
 
 class IndexerError(Exception):
-    pass
+    """Raised when there is an error during indexer processing."""
 
 
 @dataclass
@@ -57,6 +65,12 @@ class IndexerContext[ModelType: RDFResourceBase]:
     """The Plastron content model class of the resource."""
     doc: SolrFields
     """The current state of the Solr index document."""
+    config: Mapping[str, Any]
+    """Additional configuration."""
+
+    @property
+    def content_model_prefix(self) -> str:
+        return self.model_class.__name__.lower()
 
     @cached_property
     def obj(self) -> ModelType:

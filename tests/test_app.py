@@ -46,13 +46,14 @@ def register_uri_for_reading(uri: str, content_type: str, body: str):
 
 
 @httpretty.activate()
-def test_doc(client, datadir: Path):
+def test_doc_content_model_indexer_only(client, datadir: Path):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
     client.application.config['repo'] = Repository(client=Client(endpoint=Endpoint(url='http://example.com/fcrepo')))
+    client.application.config['indexers'] = ['content_model']
     response = client.get('/doc?uri=http://example.com/fcrepo/foo')
     assert response.status_code == 200
     assert response.mimetype == 'application/json'

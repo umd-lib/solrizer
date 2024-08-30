@@ -11,6 +11,7 @@ dependencies = [
     "plastron-utils",
     "python-dotenv",
     "requests-jwtauth",
+    "uritemplate",
 ]
 requires-python = ">=3.12"
 
@@ -25,3 +26,5 @@ test = [
 [project.entry-points.solrizer_indexers]
 content_model = "solrizer.indexers.content_model:content_model_fields"
 discoverability = "solrizer.indexers.discoverability:discoverability_fields"
+page_sequence = "solrizer.indexers.page_sequence:page_sequence_fields"
+iiif_links = "solrizer.indexers.iiif_links:iiif_links_fields"

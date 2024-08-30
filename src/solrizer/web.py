@@ -20,6 +20,15 @@ def create_app():
 
     client = Client(endpoint=Endpoint(FCREPO_ENDPOINT), auth=HTTPBearerAuth(FCREPO_JWT_TOKEN))
     app.config['repo'] = Repository(client=client)
+    app.config['indexers'] = [
+        'content_model',
+        'discoverability',
+        'page_sequence',
+        'iiif_links',
+    ]
+    app.config['iiif_manifests_url_pattern'] = os.environ.get('IIIF_MANIFESTS_URL_PATTERN')
+    app.config['iiif_thumbnail_url_pattern'] = os.environ.get('IIIF_THUMBNAIL_URL_PATTERN')
+    app.config['iiif_identifier_prefix'] = os.environ.get('IIIF_IDENTIFIER_PREFIX')
 
     @app.route('/doc')
     def get_doc():
@@ -45,13 +54,11 @@ def create_app():
             resource=resource,
             model_class=model_class,
             doc={'id': uri},
+            config=app.config,
         )
 
         try:
-            doc = ctx.run([
-                'content_model',
-                'discoverability',
-            ])
+            doc = ctx.run(app.config['indexers'])
         except IndexerError as e:
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 

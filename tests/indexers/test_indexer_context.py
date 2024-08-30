@@ -15,6 +15,7 @@ def ctx():
         resource=MagicMock(spec=RepositoryResource),
         model_class=RDFResource,
         doc={},
+        config={},
     )
 
 
