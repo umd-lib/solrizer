@@ -11,6 +11,7 @@ dependencies = [
     "plastron-utils",
     "python-dotenv",
     "requests-jwtauth",
+    "uritemplate",
 ]
 requires-python = ">=3.12"
 
