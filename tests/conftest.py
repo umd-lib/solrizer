@@ -9,7 +9,9 @@ from solrizer.web import create_app
 
 @pytest.fixture
 def app(monkeypatch):
-    monkeypatch.setattr(solrizer.web, 'FCREPO_JWT_SECRET', str(uuid4()))
+    monkeypatch.setenv('SOLRIZER_FCREPO_ENDPOINT', 'http://localhost:8080/fcrepo/rest')
+    monkeypatch.setenv('SOLRIZER_FCREPO_JWT_TOKEN', '')
+    monkeypatch.setenv('SOLRIZER_FCREPO_JWT_SECRET', str(uuid4()))
     return create_app()
 
 

@@ -43,9 +43,9 @@ def test_iiif_links_fields(monkeypatch, proxies):
             'item__first': [proxies]
         },
         config={
-            'iiif_identifier_prefix': 'fcrepo:',
-            'iiif_thumbnail_url_pattern': 'http://iiif.example.com/thumbnail/{+id}',
-            'iiif_manifests_url_pattern': 'http://iiif.example.com/manifest/{+id}',
+            'IIIF_IDENTIFIER_PREFIX': 'fcrepo:',
+            'IIIF_THUMBNAIL_URL_PATTERN': 'http://iiif.example.com/thumbnail/{+id}',
+            'IIIF_MANIFESTS_URL_PATTERN': 'http://iiif.example.com/manifest/{+id}',
         },
     )
     fields = iiif_links_fields(ctx)

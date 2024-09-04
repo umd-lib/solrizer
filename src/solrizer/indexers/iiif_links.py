@@ -49,18 +49,18 @@ def iiif_links_fields(ctx: IndexerContext) -> SolrFields:
     Note that although this uses the `PageSequence` class, this indexer is not
     directly reliant on the `solrizer.indexers.page_sequence` indexer running
     before it runs."""
-    manifest_uri_template = URITemplate(ctx.config['iiif_manifests_url_pattern'])
-    thumbnail_uri_template = URITemplate(ctx.config['iiif_thumbnail_url_pattern'])
+    manifest_uri_template = URITemplate(ctx.config['IIIF_MANIFESTS_URL_PATTERN'])
+    thumbnail_uri_template = URITemplate(ctx.config['IIIF_THUMBNAIL_URL_PATTERN'])
 
     pages = PageSequence(ctx)
     identifier = iiif_identifier(
         repo_path=ctx.resource.path,
-        prefix=ctx.config['iiif_identifier_prefix'],
+        prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
     )
     thumbnail_identifiers = [
         iiif_identifier(
             repo_path=ctx.repo.endpoint.repo_path(page['pcdmobject__has_file'][0]['id']),
-            prefix=ctx.config['iiif_identifier_prefix'],
+            prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
         )
         for page in pages
     ]

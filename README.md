@@ -18,8 +18,8 @@ Create a `.env` file with the following contents:
 
 ```
 FLASK_DEBUG=1
-FCREPO_ENDPOINT={URL of fcrepo instance}
-FCREPO_JWT_TOKEN={authentication token}
+SOLRIZER_FCREPO_ENDPOINT={URL of fcrepo instance}
+SOLRIZER_FCREPO_JWT_TOKEN={authentication token}
 ```
 
 ### Running
