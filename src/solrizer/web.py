@@ -25,6 +25,7 @@ def create_app():
         'discoverability',
         'page_sequence',
         'iiif_links',
+        'dates',
     ]
     app.config['iiif_manifests_url_pattern'] = os.environ.get('IIIF_MANIFESTS_URL_PATTERN')
     app.config['iiif_thumbnail_url_pattern'] = os.environ.get('IIIF_THUMBNAIL_URL_PATTERN')

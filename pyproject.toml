@@ -2,6 +2,7 @@
 name = "solrizer"
 version = "1.0.0-dev"
 dependencies = [
+    "edtf",
     "flask",
     "langcodes",
     "plastron-client",
@@ -28,3 +29,8 @@ content_model = "solrizer.indexers.content_model:content_model_fields"
 discoverability = "solrizer.indexers.discoverability:discoverability_fields"
 page_sequence = "solrizer.indexers.page_sequence:page_sequence_fields"
 iiif_links = "solrizer.indexers.iiif_links:iiif_links_fields"
+dates = "solrizer.indexers.dates:date_fields"
+
+[tool.pytest.ini_options]
+# the datetime.datetime.utcnow() warning is coming from the httpretty code
+filterwarnings = 'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning'
