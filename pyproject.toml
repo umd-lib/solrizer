@@ -23,6 +23,9 @@ test = [
     "pytest-cov",
     "pytest-datadir",
 ]
+dev = [
+    "pdoc",
+]
 
 [project.entry-points.solrizer_indexers]
 content_model = "solrizer.indexers.content_model:content_model_fields"
