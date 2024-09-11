@@ -2,23 +2,37 @@ import os
 
 from flask import Flask, request
 from plastron.client import Client, Endpoint
-from plastron.models import guess_model, ModelClassError
+from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
-from requests_jwtauth import HTTPBearerAuth
+from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
-from solrizer.errors import ResourceNotAvailable, NoResourceRequested, ProblemDetailError, problem_detail_response
+from solrizer.errors import (
+    NoResourceRequested,
+    ProblemDetailError,
+    ResourceNotAvailable,
+    problem_detail_response,
+)
 from solrizer.indexers import IndexerContext, IndexerError
 
 FCREPO_ENDPOINT = os.environ.get('FCREPO_ENDPOINT')
-FCREPO_JWT_TOKEN = os.environ.get('FCREPO_JWT_TOKEN')
+FCREPO_JWT_SECRET = os.environ.get('JWT_SECRET')
 
 
 def create_app():
     app = Flask(__name__)
 
-    client = Client(endpoint=Endpoint(FCREPO_ENDPOINT), auth=HTTPBearerAuth(FCREPO_JWT_TOKEN))
+    client = Client(
+        endpoint=Endpoint(FCREPO_ENDPOINT),
+        auth=JWTSecretAuth(
+            secret=FCREPO_JWT_SECRET,
+            claims={
+                'sub': 'solrizer',
+                'iss': 'solrizer',
+                'role': 'fedoraAdmin'
+            })
+        )
     app.config['repo'] = Repository(client=client)
     app.config['indexers'] = [
         'content_model',
