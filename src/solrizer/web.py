@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask, request
 from plastron.client import Client, Endpoint
 from plastron.models import ModelClassError, guess_model
@@ -16,17 +14,15 @@ from solrizer.errors import (
 )
 from solrizer.indexers import IndexerContext, IndexerError
 
-FCREPO_ENDPOINT = os.environ.get('FCREPO_ENDPOINT')
-FCREPO_JWT_SECRET = os.environ.get('JWT_SECRET')
-
 
 def create_app():
     app = Flask(__name__)
+    app.config.from_prefixed_env('SOLRIZER')
 
     client = Client(
-        endpoint=Endpoint(FCREPO_ENDPOINT),
+        endpoint=Endpoint(app.config['FCREPO_ENDPOINT']),
         auth=JWTSecretAuth(
-            secret=FCREPO_JWT_SECRET,
+            secret=app.config['FCREPO_JWT_SECRET'],
             claims={
                 'sub': 'solrizer',
                 'iss': 'solrizer',
@@ -34,16 +30,7 @@ def create_app():
             })
         )
     app.config['repo'] = Repository(client=client)
-    app.config['indexers'] = [
-        'content_model',
-        'discoverability',
-        'page_sequence',
-        'iiif_links',
-        'dates',
-    ]
-    app.config['iiif_manifests_url_pattern'] = os.environ.get('IIIF_MANIFESTS_URL_PATTERN')
-    app.config['iiif_thumbnail_url_pattern'] = os.environ.get('IIIF_THUMBNAIL_URL_PATTERN')
-    app.config['iiif_identifier_prefix'] = os.environ.get('IIIF_IDENTIFIER_PREFIX')
+    app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
 
     @app.route('/doc')
     def get_doc():
@@ -73,7 +60,7 @@ def create_app():
         )
 
         try:
-            doc = ctx.run(app.config['indexers'])
+            doc = ctx.run(app.config['INDEXERS'])
         except IndexerError as e:
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 

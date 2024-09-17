@@ -1,0 +1,56 @@
+{
+  "@context": {
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "vann": "http://purl.org/vocab/vann/"
+  },
+  "@graph": [
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#worldsFairImage",
+      "dc:identifier": "worldsFairImage",
+      "rdf:value": "The textual information and images contained in this website are provided for educational purposes only. Textual information and/or images may not be borrowed or reproduced beyond educational use without obtaining permission from the copyright holder. Reproduction in any form is subject to the copyright law of the United States. Please refer to sources on intellectual property, copyright, and fair use for further information.",
+      "rdfs:label": "World's Fair Image"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#private",
+      "dc:identifier": "private",
+      "rdf:value": "Private",
+      "rdfs:label": "Private"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#general",
+      "dc:identifier": "general",
+      "rdf:value": "Collection may be protected under Title 17 of the U.S. Copyright Law. To obtain permission to publish or reproduce, please <a href=\"https://www.lib.umd.edu/collections/special/contact\">contact the University of Maryland Libraries</a>.",
+      "rdfs:label": "General"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#worldsFairText",
+      "dc:identifier": "worldsFairText",
+      "rdf:value": "This text is freely available for the purpose of academic teaching and research provided the text is distributed with the header information provided.",
+      "rdfs:label": "World's Fair Text"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#restricted",
+      "dc:identifier": "restricted",
+      "rdf:value": "Access is restricted to patrons at the University of Maryland.",
+      "rdfs:label": "Restricted"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#",
+      "rdfs:label": "Terms of Use"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#prange",
+      "dc:identifier": "prange",
+      "rdf:value": "この画像の原本は著作権によって保護されています。アメリカ合衆国著作権法（タイトル17、107条）に則り、学術的目的、研究、批評、解説、教育といった公正な理由（フェア・ユース）の範囲内で個人的使用の目的のためだけにこの画像を複製することができます。複製が合衆国著作権法に合致するものであるかどうかの判断と使用違反の責任は、複製を行う利用者に委ねられます。合衆国外での複製に関しては、当該国の著作権法が適用され複製の妥当性と違反責任は複製を行う利用者に委ねられます。掲載資料の著作権の帰属に関するご質問は：prangebunko@umd.edu",
+      "rdfs:label": "Prange"
+    },
+    {
+      "@id": "http://vocab.lib.umd.edu/termsOfUse#publicDomain",
+      "dc:identifier": "publicDomain",
+      "rdf:value": "Public domain",
+      "rdfs:label": "Public domain"
+    }
+  ]
+}

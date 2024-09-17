@@ -70,6 +70,8 @@ class IndexerContext[ModelType: RDFResourceBase]:
 
     @property
     def content_model_prefix(self) -> str:
+        """String used by the `solrizer.indexers.content_model` indexer to
+        prefix field names."""
         return self.model_class.__name__.lower()
 
     @cached_property
