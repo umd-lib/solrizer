@@ -5,4 +5,4 @@ WORKDIR /opt/solrizer
 COPY src pyproject.toml /opt/solrizer/
 RUN pip install -e .
 
-RUN flask --app solrizer.web run
+ENTRYPOINT [ "solrizer" ]
