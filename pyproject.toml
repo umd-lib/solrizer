@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-solrizer = solrizer.web:run
+solrizer = "solrizer.web:run"
 
 [project.entry-points.solrizer_indexers]
 content_model = "solrizer.indexers.content_model:content_model_fields"
