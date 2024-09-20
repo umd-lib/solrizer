@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from waitress import serve
 
 from solrizer import __version__
-from solrizer.web import app
+from solrizer.web import create_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def run(listen):
     logger.info(f'Starting {server_identity}')
     try:
         serve(
-            app=app(),
+            app=create_app(),
             listen=listen,
             ident=server_identity,
         )

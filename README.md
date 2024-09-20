@@ -65,6 +65,20 @@ pdoc -p 8888 solrizer
 
 Now the documentation will be at <http://localhost:8888/>.
 
+### Docker Image
+
+Build the image:
+
+```zsh
+docker build -t docker.lib.umd.edu/solrizer .
+```
+
+Run, using the `.env` file set up earlier:
+
+```zsh
+docker run --rm -it -p 5000:5000 --env-file .env docker.lib.umd.edu/solrizer
+```
+
 ## License
 
 See the [LICENSE](LICENSE.md) file for license rights and
