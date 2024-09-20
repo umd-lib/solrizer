@@ -15,9 +15,6 @@ from solrizer.errors import (
 from solrizer.indexers import IndexerContext, IndexerError
 
 
-def app() -> Flask:
-    return create_app()
-
 def create_app():
     app = Flask(__name__)
     app.config.from_prefixed_env('SOLRIZER')
