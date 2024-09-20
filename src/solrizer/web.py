@@ -6,6 +6,7 @@ from plastron.repo import Repository, RepositoryError, RepositoryResource
 from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
+from solrizer import __version__
 from solrizer.errors import (
     NoResourceRequested,
     ProblemDetailError,
@@ -31,6 +32,24 @@ def create_app():
         )
     app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
+
+    @app.route('/')
+    def root():
+        return f'''
+        <html>
+          <head>
+            <title>Solrizer</title>
+          </head>
+          <body>
+            <h1>Solrizer</h1>
+            <form method="get" action="/doc">
+              <label>URI: <input name="uri" type="text" size="80"/></label><button type="submit">Submit</button>
+            </form>
+            <hr/>
+            <p id="version">{__version__}</p>
+          </body>
+        </html>
+        '''
 
     @app.route('/doc')
     def get_doc():
