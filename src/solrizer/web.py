@@ -32,6 +32,10 @@ def create_app():
     app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
 
+    @app.route('/health')
+    def get_health():
+        return {'status': 'ok'}
+
     @app.route('/doc')
     def get_doc():
         uri = request.args.get('uri')
