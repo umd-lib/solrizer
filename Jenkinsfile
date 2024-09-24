@@ -99,6 +99,12 @@ pipeline {
       steps {
         sh '''
           . .venv/bin/activate
+          pip install git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-utils \
+            git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-client \
+            git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-rdf \
+            git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-models \
+            git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-repo
+
           pip install -e .[test]
         '''
       }
