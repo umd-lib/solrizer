@@ -98,6 +98,7 @@ pipeline {
     stage('build') {
       steps {
         sh '''
+          apt-get update && apt-get install -y git && apt-get clean
           . .venv/bin/activate
           pip install git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-utils \
             git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-client \
