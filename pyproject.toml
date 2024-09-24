@@ -28,6 +28,8 @@ test = [
     "pytest",
     "pytest-cov",
     "pytest-datadir",
+    "pycodestyle",
+    "ruff",
 ]
 dev = [
     "pdoc",
@@ -63,3 +65,17 @@ visibility = "solrizer.faceters:VisibilityFacet"
 [tool.pytest.ini_options]
 # the datetime.datetime.utcnow() warning is coming from the httpretty code
 filterwarnings = 'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning'
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+# preview is required to enable many pycodestyle rules see
+# https://docs.astral.sh/ruff/rules/
+preview = true
+
+# Enable pycodestyle errors and warnings
+select = ["E", "W"]
