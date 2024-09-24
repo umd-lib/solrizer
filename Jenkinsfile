@@ -137,7 +137,9 @@ pipeline {
       post {
         always {
           // Collect pycodestyle reports
-          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff/pycodestyle check')], unstableTotalAll: 1)
+          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff/pycodestyle check')],
+                       qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'UNSTABLE']]
+                       )
 
           // Collect coverage reports
           publishHTML([
