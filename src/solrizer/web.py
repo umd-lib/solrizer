@@ -20,6 +20,7 @@ from solrizer.indexers import IndexerContext, IndexerError
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_prefixed_env('SOLRIZER')
@@ -27,13 +28,9 @@ def create_app():
     client = Client(
         endpoint=Endpoint(app.config['FCREPO_ENDPOINT']),
         auth=JWTSecretAuth(
-            secret=app.config['FCREPO_JWT_SECRET'],
-            claims={
-                'sub': 'solrizer',
-                'iss': 'solrizer',
-                'role': 'fedoraAdmin'
-            })
-        )
+            secret=app.config['FCREPO_JWT_SECRET'], claims={'sub': 'solrizer', 'iss': 'solrizer', 'role': 'fedoraAdmin'}
+        ),
+    )
     app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
 
