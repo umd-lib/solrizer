@@ -1,3 +1,6 @@
+import logging
+from time import strftime
+
 from flask import Flask, request
 from plastron.client import Client, Endpoint
 from plastron.models import ModelClassError, guess_model
@@ -15,6 +18,9 @@ from solrizer.errors import (
 )
 from solrizer.indexers import IndexerContext, IndexerError
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def create_app():
     app = Flask(__name__)
@@ -23,16 +29,19 @@ def create_app():
     client = Client(
         endpoint=Endpoint(app.config['FCREPO_ENDPOINT']),
         auth=JWTSecretAuth(
-            secret=app.config['FCREPO_JWT_SECRET'],
-            claims={
-                'sub': 'solrizer',
-                'iss': 'solrizer',
-                'role': 'fedoraAdmin'
-            })
-        )
+            secret=app.config['FCREPO_JWT_SECRET'], claims={'sub': 'solrizer', 'iss': 'solrizer', 'role': 'fedoraAdmin'}
+        ),
+    )
     app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
 
+    # Source: https://gist.github.com/alexaleluia12/e40f1dfa4ce598c2e958611f67d28966
+    @app.after_request
+    def after_request(response):
+        timestamp = strftime('[%Y-%m-%d %H:%M]')
+        logger.info('%s %s %s %s %s', timestamp, request.method, request.scheme, request.full_path, response.status)
+        return response
+      
     @app.route('/')
     def root():
         return f'''
@@ -50,6 +59,10 @@ def create_app():
           </body>
         </html>
         '''
+      
+    @app.route('/health')
+    def get_health():
+        return {'status': 'ok'}
 
     @app.route('/doc')
     def get_doc():

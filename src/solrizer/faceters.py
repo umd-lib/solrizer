@@ -27,14 +27,15 @@ property up to the first comma.
 
 ³ For these properties, `rights_statement_label()` is used to correlate a
 rightsstatement.org URL to a vocab.lib.umd.edu term and its label.
-"""
+"""  # noqa: E501
+
 import logging
 from typing import Callable
 
-from iso639 import LanguageNotFoundError, Language
+from iso639 import Language, LanguageNotFoundError
 from plastron.models.letter import Letter
 from plastron.models.poster import Poster
-from plastron.models.umd import Item, AdminSet
+from plastron.models.umd import AdminSet, Item
 from plastron.namespaces import owl, rdfs, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.validation.vocabularies import Vocabulary
