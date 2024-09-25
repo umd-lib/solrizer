@@ -23,7 +23,7 @@ from solrizer.indexers.facets import facet_fields
                 creator=umd.Agent(label=Literal('Agent 2')),
                 format=URIRef('http://vocab.lib.umd.edu/form#postcards'),
                 language=[Literal('en'), Literal('de')],
-                presentation_set = URIRef('http://vocab.lib.umd.edu/set#labor'),
+                presentation_set=URIRef('http://vocab.lib.umd.edu/set#labor'),
                 publisher=umd.Agent(label=Literal('Agent 3')),
                 rights=URIRef('http://vocab.lib.umd.edu/rightsStatement#InC'),
                 subject=[
@@ -65,7 +65,7 @@ from solrizer.indexers.facets import facet_fields
             {
                 'creator__facet': ['Agent 2'],
                 'language__facet': ['English'],
-                'archival_collection__facet' : ['Foo'],
+                'archival_collection__facet': ['Foo'],
                 'location__facet': ['Caprica'],
                 'presentation_set__facet': ['Labor'],
                 'publication_status__facet': ['Unpublished'],
@@ -111,8 +111,8 @@ from solrizer.indexers.facets import facet_fields
                 'visibility__facet': ['Visible'],
             },
             id='Issue',
-        )
-    ]
+        ),
+    ],
 )
 def test_facet_fields(resource: RDFResourceBase, expected_fields, mock_vocabularies, get_mock_resource):
     ctx = IndexerContext(

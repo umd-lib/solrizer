@@ -6,27 +6,25 @@ from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
 
 from solrizer.indexers import IndexerContext
-from solrizer.indexers.dates import solr_date, date_fields, UnsupportedEDTFValue
+from solrizer.indexers.dates import UnsupportedEDTFValue, date_fields, solr_date
 
 EDTF_TEST_STRINGS = [
-    ('1605-11-05','1605-11-05'),
-    ('2000-11','2000-11'),
-    ('1984','1984'),
-    ('2000-11-01/2014-12-01','[2000-11-01 TO 2014-12-01]'),
-    ('2004-06/2006-08','[2004-06 TO 2006-08]'),
-    ('1964/2008','[1964 TO 2008]'),
-    ('2014/2014-12-01','[2014 TO 2014-12-01]'),
-    ('../1985-04-12','[* TO 1985-04-12]'),
-    ('../1985-04','[* TO 1985-04]'),
-    ('../1985','[* TO 1985]'),
-    ('1985-04-12/..','[1985-04-12 TO *]'),
-    ('1985-04/..','[1985-04 TO *]'),
-    ('1985/..','[1985 TO *]'),
+    ('1605-11-05', '1605-11-05'),
+    ('2000-11', '2000-11'),
+    ('1984', '1984'),
+    ('2000-11-01/2014-12-01', '[2000-11-01 TO 2014-12-01]'),
+    ('2004-06/2006-08', '[2004-06 TO 2006-08]'),
+    ('1964/2008', '[1964 TO 2008]'),
+    ('2014/2014-12-01', '[2014 TO 2014-12-01]'),
+    ('../1985-04-12', '[* TO 1985-04-12]'),
+    ('../1985-04', '[* TO 1985-04]'),
+    ('../1985', '[* TO 1985]'),
+    ('1985-04-12/..', '[1985-04-12 TO *]'),
+    ('1985-04/..', '[1985-04 TO *]'),
+    ('1985/..', '[1985 TO *]'),
     ('-0009', '-0009'),
-
     # date and time
     ('2024-09-03T12:06:34', '2024-09-03T12:06:34'),
-
     # seasons, with hemisphere
     # Note about year-wrapping (taken from a comment in edtf.appsettings):
     #
@@ -34,27 +32,24 @@ EDTF_TEST_STRINGS = [
     # > Winter 2010 could wrap into 2011.
     # > For simplicity, we assume it falls at the end of the year, esp since the
     # > spec says that sort order goes spring > summer > autumn > winter
-
     # northern hemisphere
     # spring
-    ('2001-25','[2001-03-01 TO 2001-05-31]'),
+    ('2001-25', '[2001-03-01 TO 2001-05-31]'),
     # summer
-    ('2001-26','[2001-06-01 TO 2001-08-31]'),
+    ('2001-26', '[2001-06-01 TO 2001-08-31]'),
     # autumn
-    ('2001-27','[2001-09-01 TO 2001-11-30]'),
+    ('2001-27', '[2001-09-01 TO 2001-11-30]'),
     # winter
-    ('2001-28','[2001-12-01 TO 2001-12-31]'),
-
+    ('2001-28', '[2001-12-01 TO 2001-12-31]'),
     # southern hemisphere
     # spring
-    ('2001-29','[2001-09-01 TO 2001-11-30]'),
+    ('2001-29', '[2001-09-01 TO 2001-11-30]'),
     # summer
-    ('2001-30','[2001-12-01 TO 2001-12-31]'),
+    ('2001-30', '[2001-12-01 TO 2001-12-31]'),
     # autumn
-    ('2001-31','[2001-03-01 TO 2001-05-31]'),
+    ('2001-31', '[2001-03-01 TO 2001-05-31]'),
     # winter
-    ('2001-32','[2001-06-01 TO 2001-08-31]'),
-
+    ('2001-32', '[2001-06-01 TO 2001-08-31]'),
     # other year subdivisions
     # quarters (3-month blocks)
     ('2001-33', '[2001-01-01 TO 2001-03-31]'),
@@ -68,7 +63,6 @@ EDTF_TEST_STRINGS = [
     # semesters (6-month blocks)
     ('2001-40', '[2001-01-01 TO 2001-06-30]'),
     ('2001-41', '[2001-07-01 TO 2001-12-31]'),
-
     # unspecified digits
     ('1992-09-XX', '[1992-09-01 TO 1992-09-30]'),
     ('1992-XX', '[1992-01-01 TO 1992-12-31]'),
@@ -76,7 +70,6 @@ EDTF_TEST_STRINGS = [
     ('19XX', '[1900-01-01 TO 1999-12-31]'),
     ('1XXX', '[1000-01-01 TO 1999-12-31]'),
     ('XXXX', '[0000-01-01 TO 9999-12-31]'),
-
     # exponential years, as long as they are between -9999 and 9999
     ('Y1E3', '[1000-01-01 TO 1000-12-31]'),
     ('Y5E2', '[0500-01-01 TO 0500-12-31]'),
@@ -112,6 +105,7 @@ def context_with_date():
             },
             config={},
         )
+
     return _context
 
 
@@ -151,7 +145,7 @@ def test_date_fields(edtf_value, expected_solr_value, context_with_date):
         ('2024~/2025?', '[2024 TO 2025]', True, True, False),
         ('2024?/2025%', '[2024 TO 2025]', True, False, True),
         ('2024~/2025%', '[2024 TO 2025]', False, True, True),
-    ]
+    ],
 )
 def test_uncertain_and_or_approximate(
     edtf_value,
@@ -219,7 +213,7 @@ def test_edtf_parse_exception_solr_date(edtf_value, context_with_date, caplog):
         'Y-2E6',
         # EDTF parse errors
         'Y-12000/1982',
-    ]
+    ],
 )
 def test_unsupported_edtf_returns_nothing(edtf_value, context_with_date):
     fields = date_fields(context_with_date(edtf_value))
