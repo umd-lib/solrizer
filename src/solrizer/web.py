@@ -41,7 +41,7 @@ def create_app():
         timestamp = strftime('[%Y-%m-%d %H:%M]')
         logger.info('%s %s %s %s %s', timestamp, request.method, request.scheme, request.full_path, response.status)
         return response
-      
+
     @app.route('/')
     def root():
         return f'''
@@ -59,7 +59,7 @@ def create_app():
           </body>
         </html>
         '''
-      
+
     @app.route('/health')
     def get_health():
         return {'status': 'ok'}

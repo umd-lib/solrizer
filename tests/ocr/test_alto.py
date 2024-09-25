@@ -8,7 +8,7 @@ from solrizer.ocr.alto import get_scale, ALTOResource
 @pytest.mark.parametrize(
     ('unit', 'image_resolution', 'expected_scale'),
     [
-        ('inch1200', (400, 400), (1/3, 1/3)),
+        ('inch1200', (400, 400), (1 / 3, 1 / 3)),
         ('mm10', (508, 508), (2.0, 2.0)),
         ('pixel', (300, 300), (1, 1))
     ]
