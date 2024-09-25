@@ -9,6 +9,7 @@ from plastron.repo import Repository, RepositoryError, RepositoryResource
 from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
+from solrizer import __version__
 from solrizer.errors import (
     NoResourceRequested,
     ProblemDetailError,
@@ -40,6 +41,24 @@ def create_app():
         timestamp = strftime('[%Y-%m-%d %H:%M]')
         logger.info('%s %s %s %s %s', timestamp, request.method, request.scheme, request.full_path, response.status)
         return response
+
+    @app.route('/')
+    def root():
+        return f'''
+        <html>
+          <head>
+            <title>Solrizer</title>
+          </head>
+          <body>
+            <h1>Solrizer</h1>
+            <form method="get" action="/doc">
+              <label>URI: <input name="uri" type="text" size="80"/></label><button type="submit">Submit</button>
+            </form>
+            <hr/>
+            <p id="version">{__version__}</p>
+          </body>
+        </html>
+        '''
 
     @app.route('/health')
     def get_health():
