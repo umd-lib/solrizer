@@ -59,8 +59,13 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    prefix = ctx.model_class.__name__.lower() + '__'
-    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=prefix)
+    model_name = ctx.model_class.__name__
+    prefix = model_name.lower() + '__'
+    return {
+        'content_model_name__str': model_name,
+        'content_model_prefix__str': prefix,
+        **get_model_fields(ctx.obj, repo=ctx.repo, prefix=prefix),
+    }
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:

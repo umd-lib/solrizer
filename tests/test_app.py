@@ -59,6 +59,8 @@ def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
     assert response.mimetype == 'application/json'
     result = response.json
     assert result['id'] == 'http://example.com/fcrepo/foo'
+    assert result['content_model_name__str'] == 'Item'
+    assert result['content_model_prefix__str'] == 'item__'
 
 
 @httpretty.activate()
