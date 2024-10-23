@@ -21,19 +21,26 @@ Output field patterns:
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Iterable, Callable, Iterator
 
 from langcodes import standardize_tag, LanguageTagError
-from plastron.models.authorities import VocabularyTerm
 from plastron.namespaces import xsd, umdtype, namespace_manager
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty, RDFProperty
 from plastron.rdfmapping.resources import RDFResource, RDFResourceBase
 from plastron.repo import Repository
+from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import Literal, URIRef
 
 from solrizer.indexers import SolrFields, IndexerContext, IndexerError
 
 logger = logging.getLogger(__name__)
+
+
+def solr_date(dt_string: str) -> str:
+    dt = datetime.fromisoformat(dt_string).astimezone(timezone.utc)
+    return dt.isoformat(sep='T').replace('+00:00', 'Z')
+
 
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
@@ -41,7 +48,7 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
     xsd.integer: {'suffix': '__int', 'converter': int},
     xsd.long: {'suffix': '__int', 'converter': int},
     # datetime type
-    xsd.dateTime: {'suffix': '__dt'},
+    xsd.dateTime: {'suffix': '__dt', 'converter': solr_date},
     # identifier types
     umdtype.accessionNumber: {'suffix': '__id'},
     umdtype.handle: {'suffix': '__id'},
@@ -90,7 +97,10 @@ def get_linked_objects(prop: RDFObjectProperty, repo: Repository) -> Iterator[RD
     """Iterate over the URIs in `prop.values`, retrieving the resource at
     each URI and returning it described using the `prop.object_class`."""
     for uri in prop.values:
-        yield repo[uri].read().describe(prop.object_class)
+        if uri in repo.endpoint:
+            yield repo[uri].read().describe(prop.object_class)
+        elif not issubclass(prop.object_class, VocabularyTerm):
+            yield uri
 
 
 def get_child_documents(prefix: str, objects: Iterable[RDFResource], repo: Repository) -> list[SolrFields]:
@@ -189,7 +199,10 @@ def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '
     fields = {}
     fields.update(get_field(prop, prefix, '__uri'))
     fields.update(get_field(prop, prefix, '__curie', converter=shorten_uri))
-    if prop.object_class is VocabularyTerm:
+    if prop.object_class is None:
+        return fields
+
+    if issubclass(prop.object_class, VocabularyTerm):
         if prop.object is not None:
             # add vocabulary fields
             fields.update(get_model_fields(prop.object, repo=repo, prefix=prefix + prop.attr_name + '__'))
@@ -199,7 +212,7 @@ def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '
             objects=prop.objects,
             repo=repo,
         )
-    elif prop.object_class is not None:
+    else:
         # linked object
         fields[prefix + prop.attr_name] = get_child_documents(
             prefix=prop.object_class.__name__.lower() + '__',

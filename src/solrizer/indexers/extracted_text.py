@@ -49,7 +49,7 @@ def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
         text_pages.append(get_page_text(page_resource, n))
 
     return {
-        'content__dps_txt': ' '.join(str(p) for p in text_pages),
+        'content__dps_txt': ' '.join(str(p) for p in text_pages if p is not None),
     }
 
 

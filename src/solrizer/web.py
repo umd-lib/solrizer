@@ -93,7 +93,8 @@ def create_app():
 
         try:
             doc = ctx.run(app.config['INDEXERS'])
-        except IndexerError as e:
+        except (IndexerError, RuntimeError) as e:
+            app.logger.error(f'Error while processing {uri} for indexing: {e}')
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 
         return doc, {'Content-Type': 'application/json;charset=utf-8'}

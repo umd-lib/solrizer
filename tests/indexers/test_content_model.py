@@ -60,7 +60,7 @@ def test_invalid_language_suffix():
         ('size', xsd.int, False, ['59'], {'size__int': 59}),
         ('size', xsd.integer, False, ['59'], {'size__int': 59}),
         ('size', xsd.long, False, ['59'], {'size__int': 59}),
-        ('timestamp', xsd.dateTime, False, ['2024-08-16'], {'timestamp__dt': '2024-08-16'}),
+        ('timestamp', xsd.dateTime, False, ['2024-08-16T14:54:18.240+00:00'], {'timestamp__dt': '2024-08-16T14:54:18.240000Z'}),
         (
             'value',
             None,
