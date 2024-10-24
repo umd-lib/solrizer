@@ -48,7 +48,6 @@ def mock_vocabularies(monkeypatch, shared_datadir):
         return graph
 
     monkeypatch.setattr(plastron.validation.vocabularies, 'get_vocabulary_graph', _get_vocabulary_graph)
-    monkeypatch.setattr(plastron.models.authorities, 'get_vocabulary_graph', _get_vocabulary_graph)
 
     return _get_vocabulary_graph
 
