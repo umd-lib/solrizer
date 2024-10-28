@@ -3,13 +3,14 @@ from unittest.mock import MagicMock
 
 import httpretty
 import pytest
-from plastron.models.authorities import VocabularyTerm, Subject
+from plastron.client import Endpoint
+from plastron.models.authorities import Subject, UMD_ARCHIVAL_COLLECTIONS
 from plastron.models.umd import Item
 from plastron.namespaces import umdtype, rdf, xsd, dcterms, owl
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
-from plastron.validation.vocabularies import Vocabulary
+from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import URIRef, Literal
 
 from solrizer.indexers import IndexerError
@@ -60,7 +61,15 @@ def test_invalid_language_suffix():
         ('size', xsd.int, False, ['59'], {'size__int': 59}),
         ('size', xsd.integer, False, ['59'], {'size__int': 59}),
         ('size', xsd.long, False, ['59'], {'size__int': 59}),
-        ('timestamp', xsd.dateTime, False, ['2024-08-16'], {'timestamp__dt': '2024-08-16'}),
+        (
+            'timestamp',
+            xsd.dateTime,
+            False,
+            ['2024-08-16T14:54:18.240+00:00'],
+            {
+                'timestamp__dt': '2024-08-16T14:54:18.240000Z',
+            }
+        ),
         (
             'value',
             None,
@@ -129,7 +138,7 @@ def test_object_property_simple_with_curie():
 def test_object_property_from_vocabulary(datadir: Path):
     httpretty.register_uri(
         method=httpretty.GET,
-        uri='http://vocab.lib.umd.edu/collection#',
+        uri=UMD_ARCHIVAL_COLLECTIONS.uri,
         body=(datadir / 'collection.json').read_text(),
         adding_headers={'Content-Type': 'application/ld+json'},
     )
@@ -138,8 +147,8 @@ def test_object_property_from_vocabulary(datadir: Path):
         resource=resource,
         attr_name='archival_collection',
         predicate=dcterms.isPartOf,
-        object_class=VocabularyTerm,
-        values_from=Vocabulary('http://vocab.lib.umd.edu/collection#'),
+        object_class=VocabularyTerm.from_vocab(UMD_ARCHIVAL_COLLECTIONS),
+        values_from=UMD_ARCHIVAL_COLLECTIONS,
     )
     prop.add(URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'))
     repo = MagicMock(spec=Repository)
@@ -178,6 +187,7 @@ def test_object_property_linked():
     )
     prop.add(URIRef('http://example.com/fcrepo/foo/bar'))
     repo = MagicMock(spec=Repository)
+    repo.endpoint = Endpoint(url='http://example.com/fcrepo')
     repo_resource = MagicMock(spec=RepositoryResource)
     repo.__getitem__.return_value = repo_resource
     repo_resource.read.return_value = repo_resource
