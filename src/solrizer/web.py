@@ -33,7 +33,9 @@ def create_app():
         ),
     )
     app.config['repo'] = Repository(client=client)
-    app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
+    app.config['INDEXERS'] = app.config.get('INDEXERS', {})
+    if '__default__' not in app.config['INDEXERS']:
+        app.config['INDEXERS']['__default__'] = ['content_model']
 
     # Source: https://gist.github.com/alexaleluia12/e40f1dfa4ce598c2e958611f67d28966
     @app.after_request
@@ -90,9 +92,15 @@ def create_app():
             doc={'id': uri},
             config=app.config,
         )
-
         try:
-            doc = ctx.run(app.config['INDEXERS'])
+            indexers = app.config['INDEXERS'][model_class.__name__]
+        except KeyError as e:
+            logger.info(f'No specific indexers configured for the {e} model, using defaults')
+            indexers = app.config['INDEXERS']['__default__']
+
+        logger.info(f'Running indexers: {indexers}')
+        try:
+            doc = ctx.run(indexers)
         except (IndexerError, RuntimeError) as e:
             app.logger.error(f'Error while processing {uri} for indexing: {e}')
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')

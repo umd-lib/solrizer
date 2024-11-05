@@ -47,7 +47,7 @@ def register_uri_for_reading(uri: str, content_type: str, body: str):
 
 @httpretty.activate()
 def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
-    monkeypatch.setitem(client.application.config, "INDEXERS", ['content_model'])
+    monkeypatch.setitem(client.application.config, "INDEXERS", {'__default__': ['content_model']})
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
