@@ -210,20 +210,22 @@ def test_get_model_fields():
     )
     repo = MagicMock(spec=Repository)
     expected_fields = {
-        'rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
-        'rdf_type__curies': ['umd:Item', 'pcdm:Object'],
-        'title__txt': 'Test Object',
-        'accession_number__id': '123',
-        'date__edtf': '2024-08',
-        'handle__id': 'hdl:1903.1/123',
-        'identifier__ids': ['tst-123'],
-        'archival_collection__uri': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
-        'archival_collection__curie': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
-        'archival_collection__label__txt': 'Maryland Conservation Council records',
-        'archival_collection__same_as__uris': ['http://hdl.handle.net/1903.1/1720'],
-        'archival_collection__same_as__curies': ['http://hdl.handle.net/1903.1/1720'],
+        'content_model_name__str': 'Item',
+        'content_model_prefix__str': 'item__',
+        'item__rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
+        'item__rdf_type__curies': ['umd:Item', 'pcdm:Object'],
+        'item__title__txt': 'Test Object',
+        'item__accession_number__id': '123',
+        'item__date__edtf': '2024-08',
+        'item__handle__id': 'hdl:1903.1/123',
+        'item__identifier__ids': ['tst-123'],
+        'item__archival_collection__uri': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
+        'item__archival_collection__curie': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
+        'item__archival_collection__label__txt': 'Maryland Conservation Council records',
+        'item__archival_collection__same_as__uris': ['http://hdl.handle.net/1903.1/1720'],
+        'item__archival_collection__same_as__curies': ['http://hdl.handle.net/1903.1/1720'],
     }
-    fields = get_model_fields(item, repo)
+    fields = get_model_fields(item, repo, prefix='item__')
     for k, v in fields.items():
         if isinstance(v, list):
             assert set(v) == set(expected_fields[k])

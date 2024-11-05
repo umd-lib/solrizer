@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from typing import Iterable, Callable, Iterator
 
 from langcodes import standardize_tag, LanguageTagError
+from plastron.models import ContentModeledResource
 from plastron.namespaces import xsd, umdtype, namespace_manager
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty, RDFProperty
 from plastron.rdfmapping.resources import RDFResource, RDFResourceBase
@@ -66,20 +67,24 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    model_name = ctx.model_class.__name__
-    prefix = model_name.lower() + '__'
-    return {
-        'content_model_name__str': model_name,
-        'content_model_prefix__str': prefix,
-        **get_model_fields(ctx.obj, repo=ctx.repo, prefix=prefix),
-    }
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=ctx.model_class.model_name.lower() + '__')
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
-    names to values."""
+    names to values. If `obj` is an instance of `plastron.models.ContentModeledResource`,
+    include `content_model_name__str` and `content_model_prefix__str` fields in the results."""
     logger.info(f'Converting {obj.uri}')
-    fields = {}
+
+    if isinstance(obj, ContentModeledResource):
+        model_name = obj.__class__.model_name
+        fields = {
+            'content_model_name__str': model_name,
+            'content_model_prefix__str': prefix,
+        }
+    else:
+        fields = {}
+
     for prop in obj.rdf_properties():
         if len(prop) == 0:
             # skip properties with no values

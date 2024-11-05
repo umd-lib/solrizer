@@ -23,13 +23,13 @@ def test_iiif_identifier(path, prefix, expected_identifier):
 
 def test_iiif_links_fields(monkeypatch, proxies):
     members = [
-        {'id': 'url1', 'pcdmobject__title__txt': 'Bar 1', 'pcdmobject__has_file': [
+        {'id': 'url1', 'page__title__txt': 'Bar 1', 'page__has_file': [
             {'id': 'http://example.com/fcrepo/foo/obj1/fileX'},
         ]},
-        {'id': 'url2', 'pcdmobject__title__txt': 'Bar 2', 'pcdmobject__has_file': [
+        {'id': 'url2', 'page__title__txt': 'Bar 2', 'page__has_file': [
             {'id': 'http://example.com/fcrepo/foo/obj2/fileX'},
         ]},
-        {'id': 'url3', 'pcdmobject__title__txt': 'Bar 3', 'pcdmobject__has_file': [
+        {'id': 'url3', 'page__title__txt': 'Bar 3', 'page__has_file': [
             {'id': 'http://example.com/fcrepo/foo/obj3/fileX'},
         ]},
     ]

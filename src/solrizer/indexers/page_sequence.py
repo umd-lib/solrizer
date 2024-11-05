@@ -60,7 +60,7 @@ class PageSequence:
     @property
     def uris(self) -> list[str]:
         """The ordered list of page URIs."""
-        first_proxy = self.ctx.doc[f'{self.ctx.content_model_prefix}__first'][0]
+        first_proxy: dict[str, Any] = self.ctx.doc[f'{self.ctx.content_model_prefix}__first'][0]
         return [uri for uri in follow_sequence(first_proxy)]
 
     @property
@@ -69,7 +69,7 @@ class PageSequence:
         field of each page. If a page does not have a `pcdmobject__title__txt`
         field, uses `[Page N]`, where `N` is the position of the page in the
         sequence."""
-        return [page.get('pcdmobject__title__txt', f'[Page {n}]') for n, page in enumerate(self.pages, 1)]
+        return [str(page.get('pcdmobject__title__txt', f'[Page {n}]')) for n, page in enumerate(self.pages, 1)]
 
 
 def page_sequence_fields(ctx: IndexerContext) -> SolrFields:

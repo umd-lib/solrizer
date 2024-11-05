@@ -85,6 +85,8 @@ def create_app():
             app.logger.error(f'Unable to determine model class for {uri}')
             raise ResourceNotAvailable(uri=uri) from e
 
+        logger.info(f'Model class for {uri} is {model_class.__name__}')
+
         ctx = IndexerContext(
             repo=app.config['repo'],
             resource=resource,
