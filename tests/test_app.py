@@ -2,8 +2,14 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import httpretty
+import pytest
 from plastron.client import Client, Endpoint
 from plastron.repo import Repository, RepositoryError, RepositoryResource
+
+
+@pytest.fixture
+def repo():
+    return Repository(client=Client(endpoint=Endpoint(url='http://example.com/fcrepo')))
 
 
 def test_doc_no_uri(client):
@@ -64,13 +70,13 @@ def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
 
 
 @httpretty.activate()
-def test_doc_no_content_model(client):
+def test_doc_no_content_model(client, repo):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body='',
     )
-    client.application.config['repo'] = Repository(client=Client(endpoint=Endpoint(url='http://example.com/fcrepo')))
+    client.application.config['repo'] = repo
     response = client.get('/doc?uri=http://example.com/fcrepo/foo')
     assert response.status_code == 404
     assert response.mimetype == 'application/problem+json'
@@ -78,3 +84,59 @@ def test_doc_no_content_model(client):
     assert detail['status'] == 404
     assert detail['title'] == 'Resource is not available'
     assert detail['details'] == 'Resource at "http://example.com/fcrepo/foo" is not available from the repository.'
+
+
+@httpretty.activate()
+def test_doc_with_add_command(datadir, client, repo):
+    register_uri_for_reading(
+        uri='http://example.com/fcrepo/foo',
+        content_type='application/n-triples',
+        body=(datadir / 'item.nt').read_text(),
+    )
+    client.application.config['repo'] = repo
+    response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=add')
+    assert response.status_code == 200
+    assert response.mimetype == 'application/json'
+    result = response.json
+    assert 'add' in result
+    assert 'doc' in result['add']
+    doc = result['add']['doc']
+    assert doc['id'] == 'http://example.com/fcrepo/foo'
+    assert doc['content_model_name__str'] == 'Item'
+    assert doc['content_model_prefix__str'] == 'item__'
+
+
+@httpretty.activate()
+def test_doc_with_update_command(datadir, client, repo):
+    register_uri_for_reading(
+        uri='http://example.com/fcrepo/foo',
+        content_type='application/n-triples',
+        body=(datadir / 'item.nt').read_text(),
+    )
+    client.application.config['repo'] = repo
+    response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=update')
+    assert response.status_code == 200
+    assert response.mimetype == 'application/json'
+    result = response.json
+    assert isinstance(result, list)
+    doc = result[0]
+    assert doc['id'] == 'http://example.com/fcrepo/foo'
+    assert doc['content_model_name__str'] == {'set': 'Item'}
+    assert doc['content_model_prefix__str'] == {'set': 'item__'}
+
+
+@httpretty.activate()
+def test_doc_with_unknown_command(datadir, client, repo):
+    register_uri_for_reading(
+        uri='http://example.com/fcrepo/foo',
+        content_type='application/n-triples',
+        body=(datadir / 'item.nt').read_text(),
+    )
+    client.application.config['repo'] = repo
+    response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=NOT_A_VALID_COMMAND')
+    assert response.status_code == 400
+    assert response.mimetype == 'application/problem+json'
+    detail = response.json
+    assert detail['status'] == 400
+    assert detail['title'] == 'Unknown command'
+    assert detail['details'] == '"NOT_A_VALID_COMMAND" is not a recognized value for the "command" parameter.'

@@ -1,3 +1,4 @@
+import json
 import logging
 from time import strftime
 
@@ -14,6 +15,7 @@ from solrizer.errors import (
     NoResourceRequested,
     ProblemDetailError,
     ResourceNotAvailable,
+    UnknownCommand,
     problem_detail_response,
 )
 from solrizer.indexers import IndexerContext, IndexerError
@@ -73,6 +75,10 @@ def create_app():
         if uri is None:
             raise NoResourceRequested()
 
+        command = request.args.get('command', None)
+        if command not in ('add', 'update', None):
+            raise UnknownCommand(value=command)
+
         try:
             resource: RepositoryResource = app.config['repo'][uri].read()
         except RepositoryError as e:
@@ -107,7 +113,24 @@ def create_app():
             app.logger.error(f'Error while processing {uri} for indexing: {e}')
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 
-        return doc, {'Content-Type': 'application/json;charset=utf-8'}
+        match command:
+            case 'add':
+                # wrap in an add command
+                doc = {"add": {"doc": doc}}
+            case 'update':
+                # transform into an atomic update
+                atomic_update = {}
+                for k, v in doc.items():
+                    if k in ('_root_', 'id'):
+                        atomic_update[k] = v
+                    else:
+                        atomic_update[k] = {'set': v}
+                doc = [atomic_update]
+            case None:
+                # just the plain document
+                pass
+
+        return json.dumps(doc, sort_keys=True), {'Content-Type': 'application/json;charset=utf-8'}
 
     # serve error responses using the RFC 9457 Problem Detail JSON format
     app.register_error_handler(ProblemDetailError, problem_detail_response)
