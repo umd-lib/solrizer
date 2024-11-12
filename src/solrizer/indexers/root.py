@@ -1,3 +1,17 @@
+"""
+Indexer Name: **`root`**
+
+Indexer implementation function: `root_field()`
+
+Prerequisites: None
+
+Output fields:
+
+| Field    | Python Type | Solr Type |
+|----------|-------------|-----------|
+| `_root_` | `str`       | string    |
+"""
+
 from typing import Optional
 
 from plastron.models import ContentModeledResource, guess_model
