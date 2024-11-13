@@ -103,7 +103,8 @@ pipeline {
 
           pip install -e .[test]
 
-          pip install git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-utils \
+          pip install --force-reinstall \
+            git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-utils \
             git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-client \
             git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-rdf \
             git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-models \
