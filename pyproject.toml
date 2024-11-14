@@ -47,6 +47,7 @@ iiif_links = "solrizer.indexers.iiif_links:iiif_links_fields"
 dates = "solrizer.indexers.dates:date_fields"
 facets = "solrizer.indexers.facets:facet_fields"
 extracted_text = "solrizer.indexers.extracted_text:extracted_text_fields"
+root = "solrizer.indexers.root:root_field"
 
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"

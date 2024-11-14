@@ -23,6 +23,7 @@ SOLRIZER_FCREPO_JWT_TOKEN={authentication token}
 SOLRIZER_IIIF_IDENTIFIER_PREFIX=fcrepo:
 SOLRIZER_IIIF_MANIFESTS_URL_PATTERN={URI template for IIIF manifests}
 SOLRIZER_IIIF_THUMBNAIL_URL_PATTERN={URI template for IIIF thumbnail images}
+SOLRIZER_INDEXERS={"__default__":["content_model","discoverability","page_sequence","iiif_links","dates","facets","extracted_text"],"Page":["content_model","root"],"File":["content_model","root"]}
 ```
 
 In the IIIF URI templates, use `{+id}` as the placeholder for the IIIF 

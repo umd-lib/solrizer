@@ -1,3 +1,4 @@
+import json
 import logging
 from time import strftime
 
@@ -14,6 +15,7 @@ from solrizer.errors import (
     NoResourceRequested,
     ProblemDetailError,
     ResourceNotAvailable,
+    UnknownCommand,
     problem_detail_response,
 )
 from solrizer.indexers import IndexerContext, IndexerError
@@ -33,7 +35,9 @@ def create_app():
         ),
     )
     app.config['repo'] = Repository(client=client)
-    app.config['INDEXERS'] = app.config.get('INDEXERS', 'content_model').split(',')
+    app.config['INDEXERS'] = app.config.get('INDEXERS', {})
+    if '__default__' not in app.config['INDEXERS']:
+        app.config['INDEXERS']['__default__'] = ['content_model']
 
     # Source: https://gist.github.com/alexaleluia12/e40f1dfa4ce598c2e958611f67d28966
     @app.after_request
@@ -71,6 +75,10 @@ def create_app():
         if uri is None:
             raise NoResourceRequested()
 
+        command = request.args.get('command', None)
+        if command not in ('add', 'update', None):
+            raise UnknownCommand(value=command)
+
         try:
             resource: RepositoryResource = app.config['repo'][uri].read()
         except RepositoryError as e:
@@ -83,6 +91,8 @@ def create_app():
             app.logger.error(f'Unable to determine model class for {uri}')
             raise ResourceNotAvailable(uri=uri) from e
 
+        logger.info(f'Model class for {uri} is {model_class.__name__}')
+
         ctx = IndexerContext(
             repo=app.config['repo'],
             resource=resource,
@@ -90,14 +100,37 @@ def create_app():
             doc={'id': uri},
             config=app.config,
         )
-
         try:
-            doc = ctx.run(app.config['INDEXERS'])
+            indexers = app.config['INDEXERS'][model_class.__name__]
+        except KeyError as e:
+            logger.info(f'No specific indexers configured for the {e} model, using defaults')
+            indexers = app.config['INDEXERS']['__default__']
+
+        logger.info(f'Running indexers: {indexers}')
+        try:
+            doc = ctx.run(indexers)
         except (IndexerError, RuntimeError) as e:
             app.logger.error(f'Error while processing {uri} for indexing: {e}')
             raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 
-        return doc, {'Content-Type': 'application/json;charset=utf-8'}
+        match command:
+            case 'add':
+                # wrap in an add command
+                doc = {"add": {"doc": doc}}
+            case 'update':
+                # transform into an atomic update
+                atomic_update = {}
+                for k, v in doc.items():
+                    if k in ('_root_', 'id'):
+                        atomic_update[k] = v
+                    else:
+                        atomic_update[k] = {'set': v}
+                doc = [atomic_update]
+            case None:
+                # just the plain document
+                pass
+
+        return json.dumps(doc, sort_keys=True), {'Content-Type': 'application/json;charset=utf-8'}
 
     # serve error responses using the RFC 9457 Problem Detail JSON format
     app.register_error_handler(ProblemDetailError, problem_detail_response)

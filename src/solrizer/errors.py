@@ -63,6 +63,21 @@ class NoResourceRequested(ProblemDetailError, BadRequest):
     description = 'No resource URL or path was provided as part of this request.'
 
 
+class UnknownCommand(ProblemDetailError, BadRequest):
+    """Unknown value provided for the "command" query parameter.
+
+    The HTTP status is `400 Bad Request`.
+
+    Must provide a `value` parameter to the constructor:
+
+    ```python
+    raise BadQueryParameter(value='foo')
+    ```
+    """
+    name = 'Unknown command'
+    description = '"{value}" is not a recognized value for the "command" parameter.'
+
+
 def problem_detail_response(e: ProblemDetailError) -> Response:
     """Return a JSON Problem Detail ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457))
     for HTTP errors.

@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Iterable, Mapping, Any
 
-from plastron.rdfmapping.resources import RDFResourceBase
+from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
 
 type SolrFields = dict[str, str | int | list | dict]
@@ -55,7 +55,7 @@ class IndexerError(Exception):
 
 
 @dataclass
-class IndexerContext[ModelType: RDFResourceBase]:
+class IndexerContext[ModelType: ContentModeledResource]:
     """Holds the necessary context information for indexing a single resource."""
     repo: Repository
     """Source repository of the resource."""

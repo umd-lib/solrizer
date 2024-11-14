@@ -59,7 +59,7 @@ def iiif_links_fields(ctx: IndexerContext) -> SolrFields:
     )
     thumbnail_identifiers = [
         iiif_identifier(
-            repo_path=ctx.repo.endpoint.repo_path(page['pcdmobject__has_file'][0]['id']),
+            repo_path=ctx.repo.endpoint.repo_path(page['page__has_file'][0]['id']),
             prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
         )
         for page in pages
