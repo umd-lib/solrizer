@@ -21,7 +21,6 @@ Output field patterns:
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import Iterable, Callable, Iterator
 
 from langcodes import standardize_tag, LanguageTagError
@@ -34,14 +33,9 @@ from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import Literal, URIRef
 
 from solrizer.indexers import SolrFields, IndexerContext, IndexerError
+from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
-
-
-def solr_date(dt_string: str) -> str:
-    dt = datetime.fromisoformat(dt_string).astimezone(timezone.utc)
-    return dt.isoformat(sep='T').replace('+00:00', 'Z')
-
 
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
@@ -49,7 +43,7 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
     xsd.integer: {'suffix': '__int', 'converter': int},
     xsd.long: {'suffix': '__int', 'converter': int},
     # datetime type
-    xsd.dateTime: {'suffix': '__dt', 'converter': solr_date},
+    xsd.dateTime: {'suffix': '__dt', 'converter': solr_datetime},
     # identifier types
     umdtype.accessionNumber: {'suffix': '__id'},
     umdtype.handle: {'suffix': '__id'},

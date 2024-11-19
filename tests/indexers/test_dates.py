@@ -24,7 +24,8 @@ EDTF_TEST_STRINGS = [
     ('1985/..', '[1985 TO *]'),
     ('-0009', '-0009'),
     # date and time
-    ('2024-09-03T12:06:34', '2024-09-03T12:06:34'),
+    # normalize to UTC (with the "Z" notation)
+    ('2024-11-18T11:49:32-05:00', '2024-11-18T16:49:32Z'),
     # seasons, with hemisphere
     # Note about year-wrapping (taken from a comment in edtf.appsettings):
     #
