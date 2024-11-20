@@ -21,6 +21,7 @@ from edtf import parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, Uncer
     Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime
 
 from solrizer.indexers import IndexerContext, SolrFields
+from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +107,10 @@ def solr_date(edtf_value: str | EDTFObject) -> str:
             return f'[{solr_date(lower)} TO {solr_date(upper)}]'
         case UncertainOrApproximate():
             return str(edtf.date)
-        case Date() | DateAndTime():
+        case Date():
             return str(edtf)
+        case DateAndTime():
+            return solr_datetime(str(edtf))
 
 
 class UnsupportedEDTFValue(ValueError):

@@ -66,8 +66,12 @@ subject = "solrizer.faceters:SubjectFacet"
 visibility = "solrizer.faceters:VisibilityFacet"
 
 [tool.pytest.ini_options]
-# the datetime.datetime.utcnow() warning is coming from the httpretty code
-filterwarnings = 'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning'
+# these warnings are coming from third-party code
+filterwarnings = [
+    'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning',
+    'ignore:ConjunctiveGraph is deprecated:DeprecationWarning',
+    "ignore:The 'strip_cdata' option:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 120
