@@ -71,6 +71,7 @@ filterwarnings = [
     'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning',
     'ignore:ConjunctiveGraph is deprecated:DeprecationWarning',
     "ignore:The 'strip_cdata' option:DeprecationWarning",
+    "ignore:distutils Version classes are deprecated:DeprecationWarning",
 ]
 
 [tool.ruff]

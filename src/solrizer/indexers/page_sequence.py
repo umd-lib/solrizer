@@ -60,7 +60,11 @@ class PageSequence:
     @property
     def uris(self) -> list[str]:
         """The ordered list of page URIs."""
-        first_proxy: dict[str, Any] = self.ctx.doc[f'{self.ctx.content_model_prefix}__first'][0]
+        try:
+            first_proxy: dict[str, Any] = self.ctx.doc[f'{self.ctx.content_model_prefix}__first'][0]
+        except (KeyError, IndexError):
+            # no proxies found, assuming no page order
+            return []
         return [uri for uri in follow_sequence(first_proxy)]
 
     @property
