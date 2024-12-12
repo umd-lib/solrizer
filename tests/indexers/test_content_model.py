@@ -5,6 +5,7 @@ import httpretty
 import pytest
 from plastron.client import Endpoint
 from plastron.models.authorities import Subject, UMD_ARCHIVAL_COLLECTIONS
+from plastron.models.page import File
 from plastron.models.umd import Item
 from plastron.namespaces import umdtype, rdf, xsd, dcterms, owl
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
@@ -199,33 +200,60 @@ def test_object_property_linked():
     assert fields['subject'] == [{'id': 'http://example.com/fcrepo/foo/bar', 'subject__label__txt': 'Bar'}]
 
 
-def test_get_model_fields():
-    item = Item(
-        title=Literal('Test Object'),
-        handle=Literal('hdl:1903.1/123', datatype=umdtype.handle),
-        accession_number=Literal('123', datatype=umdtype.accessionNumber),
-        date=Literal('2024-08'),
-        identifier=Literal('tst-123'),
-        archival_collection=URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'),
-    )
+@pytest.mark.parametrize(
+    ('obj', 'prefix', 'expected_fields'),
+    [
+        (
+            Item(
+                title=Literal('Test Object'),
+                handle =Literal('hdl:1903.1/123', datatype=umdtype.handle),
+                accession_number = Literal('123', datatype=umdtype.accessionNumber),
+                date = Literal('2024-08'),
+                identifier = Literal('tst-123'),
+                archival_collection = URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'),
+                created_by = Literal('plastron'),
+                last_modified_by = Literal('archelon'),
+            ),
+            'item__',
+            {
+                'content_model_name__str': 'Item',
+                'content_model_prefix__str': 'item__',
+                'item__rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
+                'item__rdf_type__curies': ['umd:Item', 'pcdm:Object'],
+                'item__title__txt': 'Test Object',
+                'item__accession_number__id': '123',
+                'item__date__edtf': '2024-08',
+                'item__handle__id': 'hdl:1903.1/123',
+                'item__identifier__ids': ['tst-123'],
+                'item__archival_collection__uri': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
+                'item__archival_collection__curie': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
+                'item__archival_collection__label__txt': 'Maryland Conservation Council records',
+                'item__archival_collection__same_as__uris': ['http://hdl.handle.net/1903.1/1720'],
+                'item__archival_collection__same_as__curies': ['http://hdl.handle.net/1903.1/1720'],
+                'item__created_by__str': 'plastron',
+                'item__last_modified_by__str': 'archelon',
+            },
+        ),
+        (
+            File(
+                filename=Literal('0001.tif'),
+                mime_type=Literal('image/tiff'),
+            ),
+            'file__',
+            {
+                'content_model_name__str': 'File',
+                'content_model_prefix__str': 'file__',
+                'file__rdf_type__uris': ['http://pcdm.org/models#File'],
+                'file__rdf_type__curies': ['pcdm:File'],
+                'file__filename__str': '0001.tif',
+                'file__mime_type__str': 'image/tiff',
+            }
+        )
+    ]
+)
+def test_get_model_fields(obj, prefix, expected_fields):
     repo = MagicMock(spec=Repository)
-    expected_fields = {
-        'content_model_name__str': 'Item',
-        'content_model_prefix__str': 'item__',
-        'item__rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
-        'item__rdf_type__curies': ['umd:Item', 'pcdm:Object'],
-        'item__title__txt': 'Test Object',
-        'item__accession_number__id': '123',
-        'item__date__edtf': '2024-08',
-        'item__handle__id': 'hdl:1903.1/123',
-        'item__identifier__ids': ['tst-123'],
-        'item__archival_collection__uri': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
-        'item__archival_collection__curie': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
-        'item__archival_collection__label__txt': 'Maryland Conservation Council records',
-        'item__archival_collection__same_as__uris': ['http://hdl.handle.net/1903.1/1720'],
-        'item__archival_collection__same_as__curies': ['http://hdl.handle.net/1903.1/1720'],
-    }
-    fields = get_model_fields(item, repo, prefix='item__')
+    fields = get_model_fields(obj, repo, prefix=prefix)
     for k, v in fields.items():
         if isinstance(v, list):
             assert set(v) == set(expected_fields[k])
