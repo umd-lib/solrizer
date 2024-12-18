@@ -2,7 +2,7 @@ import pytest
 from lxml import etree
 
 from solrizer.ocr import XYWH, BBox
-from solrizer.ocr.alto import get_scale, ALTOResource
+from solrizer.ocr.alto import get_scale, ALTOResource, Scale
 
 
 @pytest.mark.parametrize(
@@ -10,7 +10,10 @@ from solrizer.ocr.alto import get_scale, ALTOResource
     [
         ('inch1200', (400, 400), (1 / 3, 1 / 3)),
         ('mm10', (508, 508), (2.0, 2.0)),
-        ('pixel', (300, 300), (1, 1))
+        ('pixel', (300, 300), (1, 1)),
+        ('inch1200', (400, 400), Scale(1 / 3, 1 / 3)),
+        ('mm10', (508, 508), Scale(2.0, 2.0)),
+        ('pixel', (300, 300), Scale(1, 1)),
     ]
 )
 def test_get_scale(unit, image_resolution, expected_scale):

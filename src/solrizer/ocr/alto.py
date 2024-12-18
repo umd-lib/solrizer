@@ -1,4 +1,4 @@
-from typing import Iterator, Union, Optional
+from typing import Iterator, Union, Optional, NamedTuple
 
 from lxml import etree
 from lxml.etree import ElementTree, Element
@@ -10,15 +10,20 @@ ns = {
 }
 
 
-def get_scale(unit: str, image_resolution: tuple[int, int]) -> tuple[float, float]:
+class Scale(NamedTuple):
+    x: float
+    y: float
+
+
+def get_scale(unit: str, image_resolution: tuple[int, int]) -> Scale:
     xres = image_resolution[0]
     yres = image_resolution[1]
     if unit == 'inch1200':
-        return xres / 1200.0, yres / 1200.0
+        return Scale(xres / 1200.0, yres / 1200.0)
     elif unit == 'mm10':
-        return xres / 254.0, yres / 254.0
+        return Scale(xres / 254.0, yres / 254.0)
     elif unit == 'pixel':
-        return 1, 1
+        return Scale(1, 1)
     else:
         raise ValueError("Unknown MeasurementUnit " + unit)
 
@@ -56,34 +61,33 @@ class ALTOResource:
 
 
 class Region:
-    def __init__(self, element: Element, scale: tuple[float, float]):
+    def __init__(self, element: Element, scale: Scale):
         self.element = element
         self.scale = scale
         self.id = self.element.get('ID')
-        self.hpos = int(self.element.get('HPOS'))
-        self.vpos = int(self.element.get('VPOS'))
-        self.width = int(self.element.get('WIDTH'))
-        self.height = int(self.element.get('HEIGHT', 0))
+        self._xywh = XYWH(
+            x=round(int(self.element.get('HPOS')) * self.scale.x),
+            y=round(int(self.element.get('VPOS')) * self.scale.y),
+            w=round(int(self.element.get('WIDTH')) * self.scale.x),
+            h=round(int(self.element.get('HEIGHT', 0)) * self.scale.y),
+        )
+        self._bbox = BBox.from_xywh(self._xywh)
 
     @property
     def xywh(self):
-        xscale = self.scale[0]
-        yscale = self.scale[1]
-        x = round(self.hpos * xscale)
-        y = round(self.vpos * yscale)
-        w = round(self.width * xscale)
-        h = round(self.height * yscale)
-
-        return XYWH(x, y, w, h)
+        return self._xywh
 
     @property
     def bbox(self):
-        return BBox.from_xywh(self.xywh)
+        return self._bbox
 
 
 class TextBlock(Region):
     def __iter__(self):
         return self.lines
+
+    def __str__(self):
+        return '\n'.join(str(s) for s in self.lines)
 
     @property
     def lines(self) -> Iterator['TextLine']:
@@ -94,6 +98,9 @@ class TextBlock(Region):
 class TextLine(Region):
     def __iter__(self):
         return self.inlines
+
+    def __str__(self):
+        return ''.join(str(s) for s in self.inlines)
 
     @property
     def inlines(self) -> Iterator[Union['String', 'Space', 'Hyphen']]:
@@ -108,6 +115,9 @@ class TextLine(Region):
 
 
 class String(Region):
+    def __str__(self):
+        return self.content
+
     @property
     def content(self) -> str:
         # for indexing purposes, if there is a hyphenated word across multiple

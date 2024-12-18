@@ -43,13 +43,18 @@ class PageText:
 
 
 def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
-    text_pages = []
+    text_pages: list[PageText] = []
     pcdm_resource = PCDMObjectResource(ctx.repo, ctx.resource.path)
     for n, page_resource in enumerate(pcdm_resource.get_sequence(PCDMObjectResource)):  # type: int, PCDMObjectResource
         text_pages.append(get_page_text(page_resource, n))
 
+    if any(page.tagged for page in text_pages):
+        field_name = 'extracted_text__dps_txt'
+    else:
+        field_name = 'extracted_text__txt'
+
     return {
-        'content__dps_txt': ' '.join(str(p) for p in text_pages if p is not None),
+        field_name: ' '.join(str(p) for p in text_pages if p is not None),
     }
 
 
