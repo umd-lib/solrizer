@@ -6,7 +6,7 @@ from plastron.namespaces import pcdmuse
 from plastron.repo.pcdm import PCDMObjectResource
 
 from solrizer.indexers import IndexerError
-from solrizer.indexers.extracted_text import get_page_text, PageText
+from solrizer.indexers.extracted_text import get_text_page, PageText, get_text_pages
 
 
 class MockBinaryResource:
@@ -31,7 +31,7 @@ def test_get_page_text_plain(datadir):
 
     mock_resource = MagicMock(spec=PCDMObjectResource)
     mock_resource.get_file = _get_file
-    page_text = get_page_text(mock_resource, 0)
+    page_text = get_text_page(mock_resource, 0)
     assert page_text.text == 'This is a test, sample, and\nstand-in for a plain text\nOCR file.\n'
     assert page_text.page_index == 0
     assert not page_text.tagged
@@ -43,7 +43,7 @@ def test_get_page_text_html(datadir):
 
     mock_resource = MagicMock(spec=PCDMObjectResource)
     mock_resource.get_file = _get_file
-    page_text = get_page_text(mock_resource, 0)
+    page_text = get_text_page(mock_resource, 0)
     assert page_text.text == '\nThis is a test, sample, and\nstand-in for an HTML file\n(with some text)\n'
     assert page_text.page_index == 0
     assert not page_text.tagged
@@ -68,7 +68,7 @@ def test_get_page_text_alto(datadir, monkeypatch):
         ' VARSITY|n=0&xywh=340,926,246,83'
         ' BASKETERS|n=0&xywh=631,920,339,85'
     )
-    page_text = get_page_text(mock_resource, 0)
+    page_text = get_text_page(mock_resource, 0)
     assert page_text.text == expected_text
     assert page_text.page_index == 0
     assert page_text.tagged
@@ -87,7 +87,7 @@ def test_unsupported_xml_ocr_format(datadir):
 
     mock_resource.get_file.side_effect = mock_get_file
     with pytest.raises(IndexerError):
-        get_page_text(mock_resource, 0)
+        get_text_page(mock_resource, 0)
 
 
 def test_no_preservation_master(datadir):
@@ -101,4 +101,29 @@ def test_no_preservation_master(datadir):
 
     mock_resource.get_file.side_effect = mock_get_file
     with pytest.raises(IndexerError):
-        get_page_text(mock_resource, 0)
+        get_text_page(mock_resource, 0)
+
+
+def test_page_with_no_files():
+    mock_resource = MagicMock(spec=PCDMObjectResource)
+
+    def mock_get_file(_rdf_type=None, **_kwargs):
+        return None
+
+    mock_resource.get_file.side_effect = mock_get_file
+    text_page = get_text_page(mock_resource, 0)
+    assert text_page is None
+
+
+def test_pages_with_no_files():
+    mock_resource = MagicMock(spec=PCDMObjectResource)
+    mock_page = MagicMock(spec=PCDMObjectResource)
+
+    def mock_get_file(_rdf_type=None, **_kwargs):
+        return None
+
+    mock_page.get_file.side_effect = mock_get_file
+    mock_resource.get_sequence.return_value = [mock_page, mock_page]
+
+    pages = get_text_pages(mock_resource)
+    assert len(pages) == 0
