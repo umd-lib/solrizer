@@ -20,7 +20,7 @@ from PIL import Image
 from bs4 import BeautifulSoup
 from lxml import etree
 from plastron.namespaces import pcdmuse
-from plastron.repo.pcdm import PCDMObjectResource, PCDMFileBearingResource
+from plastron.repo.pcdm import PCDMObjectResource, PCDMFileBearingResource, AggregationResource
 
 from solrizer.indexers import IndexerContext, SolrFields, IndexerError
 from solrizer.ocr.alto import ALTOResource
@@ -43,10 +43,8 @@ class PageText:
 
 
 def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
-    text_pages: list[PageText] = []
     pcdm_resource = PCDMObjectResource(ctx.repo, ctx.resource.path)
-    for n, page_resource in enumerate(pcdm_resource.get_sequence(PCDMObjectResource)):  # type: int, PCDMObjectResource
-        text_pages.append(get_page_text(page_resource, n))
+    text_pages = get_text_pages(pcdm_resource)
 
     if any(page.tagged for page in text_pages):
         field_name = 'extracted_text__dps_txt'
@@ -54,11 +52,20 @@ def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
         field_name = 'extracted_text__txt'
 
     return {
-        field_name: ' '.join(str(p) for p in text_pages if p is not None),
+        field_name: ' '.join(str(p) for p in text_pages),
     }
 
 
-def get_page_text(page_resource: PCDMFileBearingResource, page_index: int) -> PageText:
+def get_text_pages(resource: AggregationResource) -> list[PageText]:
+    text_pages: list[PageText] = []
+    for n, page_resource in enumerate(resource.get_sequence(PCDMObjectResource)):  # type: int, PCDMObjectResource
+        page = get_text_page(page_resource, n)
+        if page is not None:
+            text_pages.append(page)
+    return text_pages
+
+
+def get_text_page(page_resource: PCDMFileBearingResource, page_index: int) -> PageText:
     """Try to get a `PageText` object representing the textual content of the given
     page resource.
 
