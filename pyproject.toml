@@ -11,6 +11,7 @@ dependencies = [
     "plastron-rdf",
     "plastron-repo",
     "plastron-utils",
+    "pyyaml",
     "python-dotenv",
     "python-iso639",
     "python-jsonpath",
