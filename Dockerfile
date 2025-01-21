@@ -9,11 +9,11 @@ ENV SOLRIZER_INDEXERS={"__default__":["content_model","discoverability","page_se
 WORKDIR /opt/solrizer
 
 RUN apt-get update && apt-get install -y git && apt-get clean
-RUN pip install git+https://github.com/umd-lib/plastron.git@4.4.0-dev1#subdirectory=plastron-utils \
- git+https://github.com/umd-lib/plastron.git@4.4.0-dev1#subdirectory=plastron-client \
- git+https://github.com/umd-lib/plastron.git@4.4.0-dev1#subdirectory=plastron-rdf \
- git+https://github.com/umd-lib/plastron.git@4.4.0-dev1#subdirectory=plastron-models \
- git+https://github.com/umd-lib/plastron.git@4.4.0-dev1#subdirectory=plastron-repo
+RUN pip install git+https://github.com/umd-lib/plastron.git@4.4.0-dev2#subdirectory=plastron-utils \
+ git+https://github.com/umd-lib/plastron.git@4.4.0-dev2#subdirectory=plastron-client \
+ git+https://github.com/umd-lib/plastron.git@4.4.0-dev2#subdirectory=plastron-rdf \
+ git+https://github.com/umd-lib/plastron.git@4.4.0-dev2#subdirectory=plastron-models \
+ git+https://github.com/umd-lib/plastron.git@4.4.0-dev2#subdirectory=plastron-repo
 
 COPY src pyproject.toml /opt/solrizer/
 RUN pip install -e .
