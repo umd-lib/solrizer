@@ -68,6 +68,8 @@ class IndexerContext[ModelType: ContentModeledResource]:
     """The current state of the Solr index document."""
     config: Mapping[str, Any]
     """Additional configuration."""
+    settings: Mapping[str, Any] = None
+    """Alias to configuration for the currently executing indexer."""
 
     @property
     def content_model_prefix(self) -> str:
@@ -89,6 +91,8 @@ class IndexerContext[ModelType: ContentModeledResource]:
                 indexer = AVAILABLE_INDEXERS[name].load()
             except KeyError as e:
                 raise IndexerError(f'No indexer named {e} is registered')
+
+            self.settings = self.config.get('INDEXER_SETTINGS', {}).get(name, {})
 
             try:
                 self.doc.update(indexer(self))

@@ -21,23 +21,19 @@ from plastron.rdfmapping.properties import RDFDataProperty
 from solrizer.indexers import IndexerContext, SolrFields
 from solrizer.handles import Handle, HandleValueError
 
-HANDLE_PROXY_BASE_URL = 'http://hdl.handle.net/'
-
-POSSIBLE_HANDLE_FIELDS = [
-    'archival_collection__same_as__uris',
-]
 
 def handle_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields for handles in various formats. Uses
     `find_handle_property()` to get the first property of the context object
     that has a `umdtype:handle` datatype."""
     fields = {}
+    proxy_base_url = ctx.settings.get('proxy_base_url', None)
     if prop := find_handle_property(ctx.obj):
-        handle = Handle.parse(prop.value, HANDLE_PROXY_BASE_URL)
+        handle = Handle.parse(prop.value, proxy_base_url)
         fields.update({
             'handle__id': str(handle),
             'handle__uri': handle.info_uri,
-            'handle_proxied__uri': handle.proxy_url(HANDLE_PROXY_BASE_URL)
+            'handle_proxied__uri': handle.proxy_url(proxy_base_url)
         })
 
     return fields
