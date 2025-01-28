@@ -52,12 +52,12 @@ def test_iiif_links_fields(monkeypatch, proxies):
     assert fields == {
         'iiif_manifest__id': 'fcrepo:foo',
         'iiif_manifest__uri': 'http://iiif.example.com/manifest/fcrepo:foo',
-        'iiif_thumbnail_identifier__sequence': [
+        'iiif_thumbnail_sequence__ids': [
             'fcrepo:foo:obj1:fileX',
             'fcrepo:foo:obj2:fileX',
             'fcrepo:foo:obj3:fileX',
         ],
-        'iiif_thumbnail_uri__sequence': [
+        'iiif_thumbnail_sequence__uris': [
             'http://iiif.example.com/thumbnail/fcrepo:foo:obj1:fileX',
             'http://iiif.example.com/thumbnail/fcrepo:foo:obj2:fileX',
             'http://iiif.example.com/thumbnail/fcrepo:foo:obj3:fileX',

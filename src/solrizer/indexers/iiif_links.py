@@ -16,8 +16,8 @@ Output fields:
 |---------------------------------------|-------------|--------------------|
 | `iiif_manifest__id`                   | `str`       | string             |
 | `iiif_manifest__uri`                  | `str`       | string             |
-| `iiif_thumbnail_identifier__sequence` | `list[str]` | multivalued string |
-| `iiif_thumbnail_uri__sequence`        | `list[str]` | multivalued string |
+| `iiif_thumbnail_sequence__ids`        | `list[str]` | multivalued string |
+| `iiif_thumbnail_sequence__uris`       | `list[str]` | multivalued string |
 """
 
 from uritemplate import URITemplate
@@ -67,6 +67,6 @@ def iiif_links_fields(ctx: IndexerContext) -> SolrFields:
     return {
         'iiif_manifest__id': identifier,
         'iiif_manifest__uri': manifest_uri_template.expand(id=identifier),
-        'iiif_thumbnail_identifier__sequence': thumbnail_identifiers,
-        'iiif_thumbnail_uri__sequence': [thumbnail_uri_template.expand(id=id) for id in thumbnail_identifiers],
+        'iiif_thumbnail_sequence__ids': thumbnail_identifiers,
+        'iiif_thumbnail_sequence__uris': [thumbnail_uri_template.expand(id=id) for id in thumbnail_identifiers],
     }
