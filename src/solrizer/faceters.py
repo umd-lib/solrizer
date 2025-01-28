@@ -65,10 +65,10 @@ def language_name(code: str) -> str:
     the full name of the language. If unsuccessful, logs a warning and returns
     `code` instead."""
     try:
-        return Language.match(code).name
+        return Language.match(str(code)).name
     except LanguageNotFoundError:
         logger.warning(f'Cannot match {code} to an ISO 639 language code')
-        return code
+        return str(code)
 
 
 def concat_values(prop: RDFDataProperty, separator: str = ' / ') -> str:
