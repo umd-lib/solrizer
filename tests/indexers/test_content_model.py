@@ -15,8 +15,13 @@ from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import URIRef, Literal
 
 from solrizer.indexers import IndexerError
-from solrizer.indexers.content_model import get_model_fields, get_data_fields, shorten_uri, get_object_fields, \
-    language_suffix
+from solrizer.indexers.content_model import (
+    get_model_fields,
+    get_data_fields,
+    shorten_uri,
+    get_object_fields,
+    language_suffix,
+)
 
 
 @pytest.mark.parametrize(
@@ -25,7 +30,7 @@ from solrizer.indexers.content_model import get_model_fields, get_data_fields, s
         (None, None),
         ('http://purl.org/dc/terms/title', 'dcterms:title'),
         ('http://example.com/foobar', 'http://example.com/foobar'),
-    ]
+    ],
 )
 def test_shorten_uri(uri, expected_value):
     assert shorten_uri(uri) == expected_value
@@ -40,7 +45,7 @@ def test_shorten_uri(uri, expected_value):
         ('ja-Latn', '_ja_latn'),
         ('jpn-LATN', '_ja_latn'),
         ('ger', '_de'),
-    ]
+    ],
 )
 def test_language_suffix(language, expected_value):
     assert language_suffix(language) == expected_value
@@ -69,7 +74,7 @@ def test_invalid_language_suffix():
             ['2024-08-16T14:54:18.240+00:00'],
             {
                 'timestamp__dt': '2024-08-16T14:54:18.240000Z',
-            }
+            },
         ),
         (
             'value',
@@ -83,7 +88,7 @@ def test_invalid_language_suffix():
             },
         ),
         ('value', None, True, ['a', 'b', 'c'], {'value__txts': ['a', 'b', 'c']}),
-    ]
+    ],
 )
 def test_get_data_properties(attr_name, datatype, repeatable, values, expected_fields):
     # repo = Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo')))
@@ -169,10 +174,12 @@ def test_object_property_embedded():
         embedded=True,
         object_class=Subject,
     )
-    prop.add(Subject(
-        uri=URIRef('http://example.com/fcrepo/foo#subject'),
-        label=Literal('Test'),
-    ))
+    prop.add(
+        Subject(
+            uri=URIRef('http://example.com/fcrepo/foo#subject'),
+            label=Literal('Test'),
+        )
+    )
     repo = MagicMock(spec=Repository)
     fields = get_object_fields(prop, repo)
     assert fields['subject'] == [{'id': 'http://example.com/fcrepo/foo#subject', 'subject__label__txt': 'Test'}]
@@ -206,13 +213,13 @@ def test_object_property_linked():
         (
             Item(
                 title=Literal('Test Object'),
-                handle =Literal('hdl:1903.1/123', datatype=umdtype.handle),
-                accession_number = Literal('123', datatype=umdtype.accessionNumber),
-                date = Literal('2024-08'),
-                identifier = Literal('tst-123'),
-                archival_collection = URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'),
-                created_by = Literal('plastron'),
-                last_modified_by = Literal('archelon'),
+                handle=Literal('hdl:1903.1/123', datatype=umdtype.handle),
+                accession_number=Literal('123', datatype=umdtype.accessionNumber),
+                date=Literal('2024-08'),
+                identifier=Literal('tst-123'),
+                archival_collection=URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'),
+                created_by=Literal('plastron'),
+                last_modified_by=Literal('archelon'),
             ),
             'item__',
             {
@@ -247,9 +254,9 @@ def test_object_property_linked():
                 'file__rdf_type__curies': ['pcdm:File'],
                 'file__filename__str': '0001.tif',
                 'file__mime_type__str': 'image/tiff',
-            }
-        )
-    ]
+            },
+        ),
+    ],
 )
 def test_get_model_fields(obj, prefix, expected_fields):
     repo = MagicMock(spec=Repository)
