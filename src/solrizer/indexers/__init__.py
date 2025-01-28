@@ -72,7 +72,7 @@ class IndexerContext[ModelType: ContentModeledResource]:
     def content_model_prefix(self) -> str:
         """String used by the `solrizer.indexers.content_model` indexer to
         prefix field names."""
-        return self.model_class.__name__.lower()
+        return self.model_class.__name__.lower() + '__'
 
     @cached_property
     def obj(self) -> ModelType:

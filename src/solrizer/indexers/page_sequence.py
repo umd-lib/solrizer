@@ -31,7 +31,7 @@ def follow_sequence(proxy: dict[str, Any]) -> Iterator[str]:
 
 def get_members_by_uri(ctx: IndexerContext) -> dict[str, dict]:
     """Create a dictionary mapping member URIs to the members' index documents."""
-    member_list: list[dict] = ctx.doc.get(f'{ctx.content_model_prefix}__has_member', [])
+    member_list: list[dict] = ctx.doc.get(ctx.content_model_prefix + 'has_member', [])
     return {member['id']: member for member in member_list}
 
 
@@ -61,7 +61,7 @@ class PageSequence:
     def uris(self) -> list[str]:
         """The ordered list of page URIs."""
         try:
-            first_proxy: dict[str, Any] = self.ctx.doc[f'{self.ctx.content_model_prefix}__first'][0]
+            first_proxy: dict[str, Any] = self.ctx.doc[self.ctx.content_model_prefix + 'first'][0]
         except (KeyError, IndexError):
             # no proxies found, assuming no page order
             return []
@@ -80,7 +80,7 @@ def page_sequence_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that generates `page_label_sequence` and
     `page_uri_sequence` fields."""
 
-    if f'{ctx.content_model_prefix}__first' not in ctx.doc:
+    if ctx.content_model_prefix + 'first' not in ctx.doc:
         return {}
 
     pages = PageSequence(ctx)

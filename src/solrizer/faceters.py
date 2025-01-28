@@ -276,7 +276,7 @@ class RDFTypeFacet(FacetBase):
     facet_name = 'rdf_type'
 
     def get_values(self) -> list[str] | None:
-        return self.ctx.doc.get(f'{self.ctx.content_model_prefix}__rdf_type__curies', None)
+        return self.ctx.doc.get(self.ctx.content_model_prefix + 'rdf_type__curies', None)
 
 
 class ResourceTypeFacet(FacetBase):
