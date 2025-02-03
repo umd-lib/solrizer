@@ -51,8 +51,12 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
 """Field mappings for RDF literals with particular datatypes."""
 
 FIELD_ARGUMENTS_BY_ATTR_NAME = {
+    'created_by': {'suffix': '__str'},
     'date': {'suffix': '__edtf'},
+    'filename': {'suffix': '__str'},
     'identifier': {'suffix': '__id'},
+    'last_modified_by': {'suffix': '__str'},
+    'mime_type': {'suffix': '__str'},
 }
 """Field mappings for fields with particular property names."""
 
