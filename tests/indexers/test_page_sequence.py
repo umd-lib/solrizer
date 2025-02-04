@@ -72,6 +72,6 @@ def test_empty_page_sequence_fields():
 def test_page_sequence_fields(context):
     fields = page_sequence_fields(context)
     assert fields == {
-        'page_uri__sequence': ['url1', 'url2', 'url3'],
-        'page_label__sequence': ['Bar 1', 'Bar 2', 'Bar 3'],
+        'page_uri_sequence__uris': ['url1', 'url2', 'url3'],
+        'page_label_sequence__txts': ['Bar 1', 'Bar 2', 'Bar 3'],
     }

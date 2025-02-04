@@ -7,10 +7,10 @@ Prerequisites: Must run **after** the [`content_model`](./content_model) indexer
 
 Output fields:
 
-| Field                  | Python Type | Solr Type          |
-|------------------------|-------------|--------------------|
-| `page_label__sequence` | `list[str]` | multivalued string |
-| `page_uri__sequence`   | `list[str]` | multivalued string |
+| Field                       | Python Type | Solr Type                     |
+|-----------------------------|-------------|-------------------------------|
+| `page_label_sequence__txts` | `list[str]` | multivalued string, tokenized |
+| `page_uri_sequence__uris`   | `list[str]` | multivalued string            |
 """
 
 from typing import Any, Iterator
@@ -85,6 +85,6 @@ def page_sequence_fields(ctx: IndexerContext) -> SolrFields:
 
     pages = PageSequence(ctx)
     return {
-        'page_label__sequence': pages.labels,
-        'page_uri__sequence': pages.uris,
+        'page_label_sequence__txts': pages.labels,
+        'page_uri_sequence__uris': pages.uris,
     }
