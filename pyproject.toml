@@ -73,6 +73,7 @@ filterwarnings = [
     "ignore:The 'strip_cdata' option:DeprecationWarning",
     "ignore:distutils Version classes are deprecated:DeprecationWarning",
 ]
+addopts = "--doctest-modules"
 
 [tool.ruff]
 line-length = 120

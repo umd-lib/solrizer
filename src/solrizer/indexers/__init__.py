@@ -33,9 +33,10 @@ doc = ctx.run(['content_model', 'discoverability', 'page_sequence'])
 """
 import importlib.metadata
 import logging
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Iterable, Mapping, Any
+from typing import Any
 
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository

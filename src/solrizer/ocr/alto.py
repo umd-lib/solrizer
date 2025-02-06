@@ -1,4 +1,5 @@
-from typing import Iterator, Union, Optional, NamedTuple
+from collections.abc import Iterator
+from typing import NamedTuple, Union, Optional
 
 from lxml import etree
 from lxml.etree import ElementTree, Element

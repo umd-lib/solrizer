@@ -36,6 +36,7 @@ def iiif_identifier(repo_path: str, prefix: str = '') -> str:
     'foo:bar'
     >>> iiif_identifier('/foo/bar', 'fcrepo:')
     'fcrepo:foo:bar'
+
     ```
     """
     return prefix + repo_path.lstrip('/').replace('/', ':')

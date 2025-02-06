@@ -30,7 +30,7 @@ rightsstatement.org URL to a vocab.lib.umd.edu term and its label.
 """  # noqa: E501
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from iso639 import Language, LanguageNotFoundError
 from plastron.models.letter import Letter

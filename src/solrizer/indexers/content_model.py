@@ -21,7 +21,7 @@ Output field patterns:
 """
 
 import logging
-from typing import Iterable, Callable, Iterator
+from collections.abc import Iterator, Iterable, Callable
 
 from langcodes import standardize_tag, LanguageTagError
 from plastron.models import ContentModeledResource
@@ -133,9 +133,10 @@ def language_suffix(language: str | None) -> str:
     >>> language_suffix('eng')
     '_en'
     >>> language_suffix('jpn-LATN')
-    '_ja-latn'
+    '_ja_latn'
     >>> language_suffix(None)
     ''
+
     ```
     """
     if language is not None:

@@ -12,8 +12,8 @@ Output fields:
 | `page_label_sequence__txts` | `list[str]` | multivalued string, tokenized |
 | `page_uri_sequence__uris`   | `list[str]` | multivalued string            |
 """
-
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from solrizer.indexers import IndexerContext, SolrFields
 
