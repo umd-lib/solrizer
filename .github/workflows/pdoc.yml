@@ -16,7 +16,7 @@ jobs:
       - run: pip install .
       - run: pip install git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-utils git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-client git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-rdf git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-models git+https://github.com/umd-lib/plastron.git@release/4.4#subdirectory=plastron-repo
       - run: pip install pdoc
-      - run: pdoc --output-dir apidocs --docformat restructuredtext ./src/solrizer/__init__.py
+      - run: pdoc --output-dir apidocs/${{ github.ref_name }} --docformat restructuredtext ./src/solrizer/__init__.py
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apidocs
