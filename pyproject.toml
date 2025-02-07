@@ -48,6 +48,7 @@ dates = "solrizer.indexers.dates:date_fields"
 facets = "solrizer.indexers.facets:facet_fields"
 extracted_text = "solrizer.indexers.extracted_text:extracted_text_fields"
 root = "solrizer.indexers.root:root_field"
+handles = "solrizer.indexers.handles:handle_fields"
 
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"
