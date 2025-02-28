@@ -1,0 +1,5 @@
+handles:
+  proxy_base_url: http://hdl.handle.net/
+  possible_handle_fields:
+    - archival_collection__same_as__uris
+    - accession_number__id
