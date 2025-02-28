@@ -5,15 +5,18 @@ dependencies = [
     "beautifulsoup4",
     "edtf",
     "flask",
+    "jq",
     "langcodes",
     "plastron-client",
     "plastron-models",
     "plastron-rdf",
     "plastron-repo",
     "plastron-utils",
+    "pyyaml",
     "python-dotenv",
     "python-iso639",
     "python-jsonpath",
+    "pyyaml",
     # require rdflib 7.0.0+ in order to have access
     # to the NamespaceManager.curie() method
     "rdflib>=7.0.0",
@@ -48,6 +51,8 @@ dates = "solrizer.indexers.dates:date_fields"
 facets = "solrizer.indexers.facets:facet_fields"
 extracted_text = "solrizer.indexers.extracted_text:extracted_text_fields"
 root = "solrizer.indexers.root:root_field"
+handles = "solrizer.indexers.handles:handle_fields"
+aggregate_fields = "solrizer.indexers.aggregate_fields:aggregate_fields"
 
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"
@@ -73,6 +78,7 @@ filterwarnings = [
     "ignore:The 'strip_cdata' option:DeprecationWarning",
     "ignore:distutils Version classes are deprecated:DeprecationWarning",
 ]
+addopts = "--doctest-modules"
 
 [tool.ruff]
 line-length = 120

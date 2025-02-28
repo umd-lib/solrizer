@@ -30,7 +30,7 @@ rightsstatement.org URL to a vocab.lib.umd.edu term and its label.
 """  # noqa: E501
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from iso639 import Language, LanguageNotFoundError
 from plastron.models.letter import Letter
@@ -276,7 +276,7 @@ class RDFTypeFacet(FacetBase):
     facet_name = 'rdf_type'
 
     def get_values(self) -> list[str] | None:
-        return self.ctx.doc.get(f'{self.ctx.content_model_prefix}__rdf_type__curies', None)
+        return self.ctx.doc.get(self.ctx.content_model_prefix + 'rdf_type__curies', None)
 
 
 class ResourceTypeFacet(FacetBase):

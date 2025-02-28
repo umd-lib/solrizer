@@ -12,6 +12,7 @@ class XYWH(NamedTuple):
 
     >>> str(region)
     '100,120,50,60'
+
     ```
     """
     x: int
@@ -43,7 +44,8 @@ class BBox(NamedTuple):
     >>> region = BBox(100, 120, 150, 180)
 
     >>> str(region)
-    '100,150,120,180'
+    '100,120,150,180'
+
     ```
     """
     x1: int

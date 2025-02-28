@@ -11,9 +11,8 @@ Output fields:
 |--------------------|-------------|----------------------------------------------|
 | `content__dps_txt` | `str`       | tokenized text with delimited string payload |
 """
-
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 from urllib.parse import urlencode
 
 from PIL import Image

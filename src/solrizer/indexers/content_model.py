@@ -21,7 +21,7 @@ Output field patterns:
 """
 
 import logging
-from typing import Iterable, Callable, Iterator
+from collections.abc import Iterator, Iterable, Callable
 
 from langcodes import standardize_tag, LanguageTagError
 from plastron.models import ContentModeledResource
@@ -65,7 +65,7 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=ctx.model_class.model_name.lower() + '__')
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=ctx.content_model_prefix)
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
@@ -133,9 +133,10 @@ def language_suffix(language: str | None) -> str:
     >>> language_suffix('eng')
     '_en'
     >>> language_suffix('jpn-LATN')
-    '_ja-latn'
+    '_ja_latn'
     >>> language_suffix(None)
     ''
+
     ```
     """
     if language is not None:
