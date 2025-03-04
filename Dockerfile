@@ -3,8 +3,6 @@ FROM python:3.12.6-slim
 EXPOSE 5000
 
 ENV FLASK_DEBUG=0
-ENV SOLRIZER_IIIF_IDENTIFIER_PREFIX=fcrepo:
-ENV SOLRIZER_INDEXERS={"__default__":["content_model","discoverability","page_sequence","iiif_links","dates","facets","extracted_text"],"Page":["content_model"]}
 
 WORKDIR /opt/solrizer
 
