@@ -5,19 +5,35 @@ Indexer implementation function: `content_model_fields()`
 
 Prerequisites: None
 
+Output fields:
+
+| Field                       | Python Type | Solr Type |
+|-----------------------------|-------------|-----------|
+| `content_model_name__str`   | `str`       | string    |
+| `content_model_prefix__str` | `str`       | string    |
+
 Output field patterns:
 
-| Field pattern                 | Python Type            | Solr Type                   |
-|-------------------------------|------------------------|-----------------------------|
-| `{model}__{attr}__int`        | `int`                  | integer                     |
-| `{model}__{attr}__id`         | `str`                  | string                      |
-| `{model}__{attr}__dt`         | `datetime`             | datetime range              |
-| `{model}__{attr}__edtf`       | `str`                  | string                      |
-| `{model}__{attr}__txt`        | `str`                  | tokenized text              |
-| `{model}__{attr}__txt_{lang}` | `str`                  | tokenized text for `{lang}` |
-| `{model}__{attr}__uri`        | `str`                  | string                      |
-| `{model}__{attr}__curie`      | `str`                  | string                      |
-| `{model}__{attr}`             | `list[dict[str, ...]]` | nested document             |
+| Field pattern                  | Python Type            | Solr Type                                 |
+|--------------------------------|------------------------|-------------------------------------------|
+| `{model}__{attr}__int`         | `int`                  | integer                                   |
+| `{model}__{attr}__ints`        | `list[int]`            | integer (multivalued)                     |
+| `{model}__{attr}__id`          | `str`                  | string                                    |
+| `{model}__{attr}__ids`         | `list[str]`            | string (multivalued)                      |
+| `{model}__{attr}__dt`          | `datetime`             | datetime range                            |
+| `{model}__{attr}__dts`         | `list[datetime]`       | datetime range (multivalued)              |
+| `{model}__{attr}__edtf`        | `str`                  | string                                    |
+| `{model}__{attr}__edtfs`       | `list[str]`            | string (multivalued)                      |
+| `{model}__{attr}__txt`         | `str`                  | tokenized text                            |
+| `{model}__{attr}__txts`        | `list[str]`            | tokenized text (multivalued)              |
+| `{model}__{attr}__txt_{lang}`  | `str`                  | tokenized text for `{lang}`               |
+| `{model}__{attr}__txt_{lang}s` | `list[str]`            | tokenized text for `{lang}` (multivalued) |
+| `{model}__{attr}__uri`         | `str`                  | string                                    |
+| `{model}__{attr}__uris`        | `list[str]`            | string (multivalued)                      |
+| `{model}__{attr}__curie`       | `str`                  | string                                    |
+| `{model}__{attr}__curies`      | `list[str]`            | string (multivalued)                      |
+| `{model}__{attr}`              | `list[dict[str, ...]]` | nested documents                          |
+| `{model}__{attr}__display`     | `list[str]`            | string (multivalued)                      |
 """
 
 import logging
@@ -172,6 +188,7 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
         else:
             # everything else is treated as text
             fields = {}
+            # divide values up by language
             for language in prop.languages:
                 fields.update(get_field(
                     prop=prop,
@@ -179,6 +196,10 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
                     suffix='__txt' + language_suffix(language),
                     value_filter=lambda v: v.language == language,
                 ))
+            # add a `__display` field that contains all the values, with embedded language tags
+            fields.update({f'{prefix}{prop.attr_name}__display': [
+                embed_language_tag(v, '[@{tag}]{value}') for v in prop.values
+            ]})
             return fields
 
 
@@ -258,3 +279,26 @@ def shorten_uri(uri: str) -> str | None:
         return namespace_manager.curie(uri, generate=False)
     except (KeyError, ValueError):
         return str(uri)
+
+
+def embed_language_tag(value: Literal, template: str = '{value}|{tag}') -> str:
+    """Convert the given RDF literal `value` to a string. If the value has a language
+    tag, use the given `template` to format the value and standardized language tag as
+    a string. The default `template` is `{value}|{tag}`.
+
+    ```pycon
+    >>> embed_language_tag(Literal('dog'))
+    'dog'
+
+    >>> embed_language_tag(Literal('Hund', lang='de'))
+    'Hund|de'
+
+    >>> embed_language_tag(Literal('Hund', lang='de'), template='[@{tag}]{value}')
+    '[@de]Hund'
+
+    ```
+    """
+    if value.language:
+        return template.format(value=value, tag=standardize_tag(value.language))
+    else:
+        return str(value)
