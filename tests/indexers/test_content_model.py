@@ -103,14 +103,14 @@ def test_get_data_properties(attr_name, datatype, repeatable, values, expected_f
     )
     prop.update(Literal(v, datatype=datatype) for v in values)
     fields = get_data_fields(prop)
-    if repeatable:
-        # multivalued fields are not guaranteed to come out of the RDF in the
-        # same order they went in, so we just want to compare the values as sets
-        # instead of lists
-        for k, v in fields.items():
+    for k, v in fields.items():
+        if isinstance(v, list):
+            # multivalued fields are not guaranteed to come out of the RDF in the
+            # same order they went in, so we just want to compare the values as sets
+            # instead of lists
             assert set(v) == set(expected_fields[k])
-    else:
-        assert fields == expected_fields
+        else:
+            assert v == expected_fields[k]
 
 
 def test_object_property_simple_no_curie():
