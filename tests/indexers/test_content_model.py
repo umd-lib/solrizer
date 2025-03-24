@@ -59,7 +59,7 @@ def test_invalid_language_suffix():
 @pytest.mark.parametrize(
     ('attr_name', 'datatype', 'repeatable', 'values', 'expected_fields'),
     [
-        ('title', None, False, ['Foobar'], {'title__txt': 'Foobar'}),
+        ('title', None, False, ['Foobar'], {'title__txt': 'Foobar', 'title__display': ['Foobar']}),
         ('date', None, False, ['2024-08'], {'date__edtf': '2024-08'}),
         ('identifier', None, False, ['foobar'], {'identifier__id': 'foobar'}),
         ('handle', umdtype.handle, False, ['hdl:1903.1/123'], {'handle__id': 'hdl:1903.1/123'}),
@@ -85,9 +85,10 @@ def test_invalid_language_suffix():
                 'value__txt': 'dog',
                 'value__txt_en': 'dog',
                 'value__txt_de': 'der Hund',
+                'value__display': ['dog', '[@en]dog', '[@de]der Hund'],
             },
         ),
-        ('value', None, True, ['a', 'b', 'c'], {'value__txts': ['a', 'b', 'c']}),
+        ('value', None, True, ['a', 'b', 'c'], {'value__txts': ['a', 'b', 'c'], 'value__display': ['a', 'b', 'c']}),
     ],
 )
 def test_get_data_properties(attr_name, datatype, repeatable, values, expected_fields):
@@ -102,14 +103,14 @@ def test_get_data_properties(attr_name, datatype, repeatable, values, expected_f
     )
     prop.update(Literal(v, datatype=datatype) for v in values)
     fields = get_data_fields(prop)
-    if repeatable:
-        # multivalued fields are not guaranteed to come out of the RDF in the
-        # same order they went in, so we just want to compare the values as sets
-        # instead of lists
-        for k, v in fields.items():
+    for k, v in fields.items():
+        if isinstance(v, list):
+            # multivalued fields are not guaranteed to come out of the RDF in the
+            # same order they went in, so we just want to compare the values as sets
+            # instead of lists
             assert set(v) == set(expected_fields[k])
-    else:
-        assert fields == expected_fields
+        else:
+            assert v == expected_fields[k]
 
 
 def test_object_property_simple_no_curie():
@@ -182,7 +183,11 @@ def test_object_property_embedded():
     )
     repo = MagicMock(spec=Repository)
     fields = get_object_fields(prop, repo)
-    assert fields['subject'] == [{'id': 'http://example.com/fcrepo/foo#subject', 'subject__label__txt': 'Test'}]
+    assert fields['subject'] == [{
+        'id': 'http://example.com/fcrepo/foo#subject',
+        'subject__label__txt': 'Test',
+        'subject__label__display': ['Test'],
+    }]
 
 
 def test_object_property_linked():
@@ -204,7 +209,11 @@ def test_object_property_linked():
         label=Literal('Bar'),
     )
     fields = get_object_fields(prop, repo)
-    assert fields['subject'] == [{'id': 'http://example.com/fcrepo/foo/bar', 'subject__label__txt': 'Bar'}]
+    assert fields['subject'] == [{
+        'id': 'http://example.com/fcrepo/foo/bar',
+        'subject__label__txt': 'Bar',
+        'subject__label__display': ['Bar'],
+    }]
 
 
 @pytest.mark.parametrize(
@@ -228,6 +237,7 @@ def test_object_property_linked():
                 'item__rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
                 'item__rdf_type__curies': ['umd:Item', 'pcdm:Object'],
                 'item__title__txt': 'Test Object',
+                'item__title__display': ['Test Object'],
                 'item__accession_number__id': '123',
                 'item__date__edtf': '2024-08',
                 'item__handle__id': 'hdl:1903.1/123',
@@ -235,6 +245,7 @@ def test_object_property_linked():
                 'item__archival_collection__uri': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
                 'item__archival_collection__curie': 'http://vocab.lib.umd.edu/collection#0051-MDHC',
                 'item__archival_collection__label__txt': 'Maryland Conservation Council records',
+                'item__archival_collection__label__display': ['Maryland Conservation Council records'],
                 'item__archival_collection__same_as__uris': ['http://hdl.handle.net/1903.1/1720'],
                 'item__archival_collection__same_as__curies': ['http://hdl.handle.net/1903.1/1720'],
                 'item__created_by__str': 'plastron',
