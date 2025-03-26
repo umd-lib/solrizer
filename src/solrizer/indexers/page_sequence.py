@@ -69,11 +69,10 @@ class PageSequence:
 
     @property
     def labels(self) -> list[str]:
-        """The ordered list of page labels, taken from the `pcdmobject__title__txt`
-        field of each page. If a page does not have a `pcdmobject__title__txt`
-        field, uses `[Page N]`, where `N` is the position of the page in the
-        sequence."""
-        return [str(page.get('pcdmobject__title__txt', f'[Page {n}]')) for n, page in enumerate(self.pages, 1)]
+        """The ordered list of page labels, taken from the `page__title__txt` field
+        of each page. If a page does not have a `page__title__txt` field, uses `[Page N]`,
+        where `N` is the position of the page in the sequence."""
+        return [str(page.get('page__title__txt', f'[Page {n}]')) for n, page in enumerate(self.pages, 1)]
 
 
 def page_sequence_fields(ctx: IndexerContext) -> SolrFields:
