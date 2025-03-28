@@ -54,7 +54,7 @@ def context_with_settings(monkeypatch):
 
 
 def test_handle_fields(context_with_settings):
-    ctx = context_with_settings({'proxy_base_url': 'http://example.net/hdl/'})
+    ctx = context_with_settings({'proxy_prefix': 'http://example.net/hdl/'})
     fields = handle_fields(ctx)
     assert fields['handle__id'] == '1903.1/123'
     assert fields['handle__uri'] == 'info:hdl/1903.1/123'

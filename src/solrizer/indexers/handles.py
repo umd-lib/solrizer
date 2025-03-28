@@ -18,8 +18,8 @@ from plastron.models import ContentModeledResource
 from plastron.namespaces import umdtype
 from plastron.rdfmapping.properties import RDFDataProperty
 
+from solrizer.handles import Handle
 from solrizer.indexers import IndexerContext, SolrFields
-from solrizer.handles import Handle, HandleValueError
 
 
 def handle_fields(ctx: IndexerContext) -> SolrFields:
@@ -27,13 +27,13 @@ def handle_fields(ctx: IndexerContext) -> SolrFields:
     `find_handle_property()` to get the first property of the context object
     that has a `umdtype:handle` datatype."""
     fields = {}
-    proxy_base_url = ctx.settings.get('proxy_base_url', None)
+    proxy_prefix = ctx.settings.get('proxy_prefix', None)
     if prop := find_handle_property(ctx.obj):
-        handle = Handle.parse(prop.value, proxy_base_url)
+        handle = Handle.parse(prop.value, proxy_prefix)
         fields.update({
             'handle__id': str(handle),
             'handle__uri': handle.info_uri,
-            'handle_proxied__uri': handle.proxy_url(proxy_base_url)
+            'handle_proxied__uri': handle.proxy_url(proxy_prefix)
         })
 
     return fields

@@ -10,6 +10,7 @@ from plastron.client import Client, Endpoint
 from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
+from plastron.utils import envsubst
 from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
@@ -37,8 +38,36 @@ LOADERS = {
 def load_config_from_files(config: MutableMapping):
     """Iterates over the keys in `config`. For any with the format "{NAME}_FILE",
     treat its value as a filename. Reads that file using the appropriate loader
-    ("*.json" files use `json.load`, and "*.yml" and "*.yaml" files use `yaml.safe_load`)
+    (".json" files use `json.load`, and ".yml" and ".yaml" files use `yaml.safe_load`)
     and set the config key "{NAME}" to the return value of the loader.
+
+    After loading, uses `plastron.utils.envsubst` to apply substitutions to the
+    loaded object. You may use any of the keys currently defined in the config;
+    in particular, this means you can use the values of environment variables
+    with the prefix "SOLRIZER_". In the file, use the name without the "SOLRIZER_"
+    prefix.
+
+    ```zsh
+    # environment
+    SOLRIZER_HANDLE_PROXY_PREFIX=http://hdl-local/
+    SOLRIZER_INDEXER_SETTINGS_FILE=indexer-settings.yml
+    ```
+
+    ```yaml
+    # indexer-settings.yml
+    handles:
+      proxy_prefix: ${HANDLE_PROXY_PREFIX}
+    ```
+
+    Results in this value for `config['INDEXER_SETTINGS']`:
+
+    ```python
+    {
+        'handles': {
+            'proxy_prefix': 'http://hdl-local/'
+        }
+    }
+    ```
 
     Ignores a "{NAME}_FILE" key if "{NAME}" is already defined in config (i.e.,
     "{NAME}" takes precedence over "{NAME}_FILE").
@@ -58,7 +87,7 @@ def load_config_from_files(config: MutableMapping):
                 raise RuntimeError(f'Cannot open a config file with suffix "{file.suffix}"') from e
             try:
                 with file.open() as fh:
-                    config[key] = loader(fh)
+                    config[key] = envsubst(loader(fh), config)
             except FileNotFoundError as e:
                 raise RuntimeError(f'Config file "{file}" not found') from e
 
