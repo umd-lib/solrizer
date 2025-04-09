@@ -8,6 +8,16 @@ Item:
   - handles
   - aggregate_fields
   - extracted_text
+Issue:
+  - content_model
+  - discoverability
+  - page_sequence
+  - iiif_links
+  - dates
+  - facets
+  - handles
+  - aggregate_fields
+  - extracted_text
 Page:
   - content_model
   - root
