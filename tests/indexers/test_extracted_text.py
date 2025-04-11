@@ -26,7 +26,7 @@ def test_page_text_class():
 
 
 def test_get_page_text_plain(datadir):
-    def _get_file(mime_type):
+    def _get_file(mime_type=None, rdf_type=None):
         return MockBinaryResource(datadir / 'text.txt') if mime_type == 'text/plain' else None
 
     mock_resource = MagicMock(spec=PCDMObjectResource)
@@ -38,7 +38,7 @@ def test_get_page_text_plain(datadir):
 
 
 def test_get_page_text_html(datadir):
-    def _get_file(mime_type):
+    def _get_file(mime_type=None, rdf_type=None):
         return MockBinaryResource(datadir / 'text.html') if mime_type == 'text/html' else None
 
     mock_resource = MagicMock(spec=PCDMObjectResource)

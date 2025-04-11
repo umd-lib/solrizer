@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from plastron.namespaces import pcdmuse
-from plastron.ocr import OCRResource, ImageWithOCR, UnrecognizedOCRFormatError
+from plastron.ocr import OCRResource, ImageWithOCR, UnrecognizedOCRFormatError, ImageFileError
 from plastron.repo.pcdm import PCDMObjectResource, PCDMFileBearingResource, AggregationResource
 
 from solrizer.indexers import IndexerContext, SolrFields, IndexerError
@@ -86,6 +86,8 @@ def get_text_page(page_resource: PCDMFileBearingResource, page_index: int) -> Pa
                 page_index=page_index,
                 tagged=True,
             )
+        except ImageFileError as e:
+            raise IndexerError(f'Problem with image file: {e}') from e
         except UnrecognizedOCRFormatError as e:
             raise IndexerError(f'Unsupported extracted text document: {ocr_file}') from e
 
