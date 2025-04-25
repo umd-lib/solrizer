@@ -40,17 +40,20 @@ class PageText:
 
 
 def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
-    pcdm_resource = PCDMObjectResource(ctx.repo, ctx.resource.path)
+    pcdm_resource = ctx.resource.convert_to(PCDMObjectResource)
     text_pages = get_text_pages(pcdm_resource)
 
-    if any(page.tagged for page in text_pages):
-        field_name = 'extracted_text__dps_txt'
-    else:
-        field_name = 'extracted_text__txt'
+    if text_pages:
+        if any(page.tagged for page in text_pages):
+            field_name = 'extracted_text__dps_txt'
+        else:
+            field_name = 'extracted_text__txt'
 
-    return {
-        field_name: ' '.join(str(p) for p in text_pages),
-    }
+        return {
+            field_name: ' '.join(str(p) for p in text_pages),
+        }
+    else:
+        return {}
 
 
 def get_text_pages(resource: AggregationResource) -> list[PageText]:
