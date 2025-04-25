@@ -1,6 +1,6 @@
 [project]
 name = "solrizer"
-version = "1.0.0-dev5"
+version = "1.0.0-rc1"
 dependencies = [
     "beautifulsoup4",
     "edtf",
