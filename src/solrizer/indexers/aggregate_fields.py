@@ -14,6 +14,6 @@ def aggregate_fields(ctx: IndexerContext) -> SolrFields:
 
     for field, queries in jq_filters.items():
         for query in queries:
-            fields[field].extend(v for v in query.input_value(ctx.doc).all() if v is not None)
+            fields[field].extend(filter(lambda v: v is not None, iter(query.input_value(ctx.doc))))
 
     return fields
