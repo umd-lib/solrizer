@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from edtf import EDTFParseException
-from plastron.rdfmapping.resources import RDFResource
+from plastron.models import ContentModeledResource
 from plastron.repo import Repository, RepositoryResource
 
 from solrizer.indexers import IndexerContext
@@ -100,7 +100,7 @@ def context_with_date():
         return IndexerContext(
             repo=MagicMock(spec=Repository),
             resource=MagicMock(spec=RepositoryResource),
-            model_class=RDFResource,
+            model_class=ContentModeledResource,
             doc={
                 'date__edtf': edtf_value,
             },
@@ -146,6 +146,13 @@ def test_date_fields(edtf_value, expected_solr_value, context_with_date):
         ('2024~/2025?', '[2024 TO 2025]', True, True, False),
         ('2024?/2025%', '[2024 TO 2025]', True, False, True),
         ('2024~/2025%', '[2024 TO 2025]', False, True, True),
+        # qualified individual components
+        ('~1945/1959', '[1945-01-01 TO 1959]', False, True, False),
+        ('1945/~1959', '[1945 TO 1959-12-31]', False, True, False),
+        ('1945-~06/1959', '[1945-06-01 TO 1959]', False, True, False),
+        ('1945/1959~-06', '[1945 TO 1959-06-30]', False, True, False),
+        ('1945-06~-15/1959', '[1945-06-15 TO 1959]', False, True, False),
+        ('1945/1959-06-~15', '[1945 TO 1959-06-15]', False, True, False),
     ],
 )
 def test_uncertain_and_or_approximate(
