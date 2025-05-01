@@ -33,8 +33,8 @@ doc = ctx.run(['content_model', 'discoverability', 'page_sequence'])
 """
 import importlib.metadata
 import logging
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, MutableMapping
+from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any
 
@@ -70,6 +70,8 @@ class IndexerContext[ModelType: ContentModeledResource]:
     """Additional configuration."""
     settings: Mapping[str, Any] = None
     """Alias to configuration for the currently executing indexer."""
+    data: MutableMapping[str, Any] = field(default_factory=dict)
+    """Arbitrary data to be shared between indexers"""
 
     @property
     def content_model_prefix(self) -> str:
