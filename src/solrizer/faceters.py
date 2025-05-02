@@ -151,8 +151,8 @@ class ArchivalCollectionFacet(FacetBase):
 class CensorshipFacet(FacetBase):
     """Censorship facet.
 
-    Returns "Yes" if the text "CCD Action: Yes" is present in the description.
-    For any books where the above text is not present, the value should be "No".
+    Returns "Yes" if the text "CCD Action: Yes" is present in the Item description.
+    For any Items where the above text is not present, the value should be "No".
     """
 
     facet_name = 'censorship'
