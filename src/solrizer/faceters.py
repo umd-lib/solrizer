@@ -6,6 +6,7 @@ properties they are based on for the different content models.
 |---------------------------|-----------------------|-----------------------------|--------------------------|--------------------------|--------------------------|
 | `ArchivalCollectionFacet` | `archival_collection` | `archival_collection.label` | `part_of.label`          | `part_of`                | —                        |
 | `ContributorFacet`        | `contributor`         | `contributor.label`         | —                        | —                        | —                        |
+| `CensorshipFacet`         | `censorship`          | `description.label`         | —                        | —                        | —                        |
 | `CreatorFacet`            | `creator`             | `creator.label`             | `author.label`           | —                        | —                        |
 | `LanguageFacet`           | `language`            | `language`¹                 | `language`¹              | `language`               | —                        |
 | `LocationFacet`           | `location`            | `location.label`            | `place.label`            | `location`               | —                        |
@@ -145,6 +146,24 @@ class ArchivalCollectionFacet(FacetBase):
                 return [str(self.ctx.obj.part_of.value)]
             case _:
                 return None
+
+
+class CensorshipFacet(FacetBase):
+    """Censorship facet.
+
+    Returns "Yes" if the text "CCD Action: Yes" is present in the description.
+    For any books where the above text is not present, the value should be "No".
+    """
+
+    facet_name = 'censorship'
+
+    def get_values(self) -> list[str] | None:
+        match self.ctx.obj:
+            case Item():
+                description: str = get_labels(self.ctx.obj.description)[0]
+                return ['Yes'] if 'CCD Action: Yes' in description else ['No']
+            case _:
+                return ['No']
 
 
 class ContributorFacet(FacetBase):

@@ -4,8 +4,8 @@ import pytest
 from plastron.client import Client, Endpoint
 from plastron.models.pcdm import PCDMObject
 from plastron.models import ContentModeledResource
-from plastron.models.umd import AdminSet
-from plastron.namespaces import dcterms, rdf, umdaccess
+from plastron.models.umd import AdminSet, Item
+from plastron.namespaces import rdf, dcterms, rdf, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
@@ -14,6 +14,7 @@ from rdflib import Literal, URIRef
 
 from solrizer.faceters import (
     AdminSetFacet,
+    CensorshipFacet,
     FacetBase,
     OCRFacet,
     PresentationSetFacet,
@@ -194,3 +195,28 @@ def test_presentation_set_attribute_error(get_mock_resource):
     )
     faceter = PresentationSetFacet(ctx)
     assert faceter.get_values() is None
+
+
+@pytest.mark.parametrize(
+    ('description', 'expected_value'),
+    [
+        ('Censorship Information: CCD No.: 2223; CCD Action: Yes (deletion); Price: 6 yen', ['Yes']),
+        ('Censorship Information: CCD No.: 2223; Price: 6 yen', ['No']),
+    ]
+)
+def test_ocr_facet(mocker, get_mock_resource, description, expected_value):
+    _get_labels = mocker.patch("solrizer.faceters.get_labels")
+    _get_labels.return_value = [description]
+
+    obj = Item()
+
+    ctx = IndexerContext(
+        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
+        resource=get_mock_resource('/foo', obj),
+        model_class=obj.__class__,
+        doc={},
+        config={},
+    )
+
+    faceter = CensorshipFacet(ctx)
+    assert faceter.get_values() == expected_value
