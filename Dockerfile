@@ -17,4 +17,7 @@ RUN pip install \
 COPY src pyproject.toml /opt/solrizer/
 RUN pip install -e .
 
+# install patched version of python-edtf (see https://umd-dit.atlassian.net/browse/LIBFCREPO-1633)
+pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
+
 ENTRYPOINT [ "solrizer" ]
