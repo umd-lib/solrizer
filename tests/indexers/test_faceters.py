@@ -159,14 +159,21 @@ def test_admin_set_facet(get_mock_resource):
         (False, None),
     ]
 )
-def test_ocr_facet(get_mock_resource, datadir, binary_resource, expected_values):
-    def _get_values(mime_type=None, rdf_type=None):
-        return ['Has OCR'] if binary_resource else None
+def test_ocr_facet(mocker, get_mock_resource, binary_resource, expected_values):
+    mocked_method = mocker.patch.object(PCDMObjectResource, 'get_file')
+    mocked_method.return_value = 'Fake Binary Resource just needs to not be None' if binary_resource else None
 
-    mock_faceter = MagicMock(spec=OCRFacet)
-    mock_faceter.get_values = _get_values
+    obj = RDFResource()
+    ctx = IndexerContext(
+        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
+        resource=get_mock_resource('/foo', obj),
+        model_class=obj.__class__,
+        doc={},
+        config={},
+    )
 
-    assert mock_faceter.get_values() == expected_values
+    faceter = OCRFacet(ctx)
+    assert faceter.get_values() == expected_values
 
 
 def test_presentation_set_attribute_error(get_mock_resource):
