@@ -89,8 +89,8 @@ def mock_vocabularies(monkeypatch, shared_datadir):
 
 @pytest.fixture
 def get_mock_resource():
-    def _mock_resource(path, obj):
-        mock_resource = MagicMock(spec=RepositoryResource, path=path)
+    def _mock_resource(path, obj, resource_class=RepositoryResource):
+        mock_resource = MagicMock(spec=resource_class, path=path)
         mock_resource.describe.return_value = obj
         return mock_resource
     return _mock_resource

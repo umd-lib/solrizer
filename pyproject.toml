@@ -32,6 +32,7 @@ test = [
     "pytest",
     "pytest-cov",
     "pytest-datadir",
+    "pytest-mock",
     "pycodestyle",
     "ruff",
 ]
@@ -59,6 +60,7 @@ admin_set = "solrizer.faceters:AdminSetFacet"
 archival_collection = "solrizer.faceters:ArchivalCollectionFacet"
 contributor = "solrizer.faceters:ContributorFacet"
 creator = "solrizer.faceters:CreatorFacet"
+has_ocr = "solrizer.faceters:OCRFacet"
 language = "solrizer.faceters:LanguageFacet"
 location = "solrizer.faceters:LocationFacet"
 presentation_set = "solrizer.faceters:PresentationSetFacet"
