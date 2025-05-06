@@ -235,7 +235,7 @@ class OCRFacet(FacetBase):
     facet_name = 'has_ocr'
 
     def get_values(self) -> list[str] | None:
-        pcdm_resource = PCDMObjectResource(self.ctx.repo, self.ctx.resource.path)
+        pcdm_resource = self.ctx.resource.convert_to(PCDMObjectResource)
         # check top level
         if pcdm_resource.get_file(rdf_type=pcdmuse.ExtractedText):
             return ['Has OCR']
