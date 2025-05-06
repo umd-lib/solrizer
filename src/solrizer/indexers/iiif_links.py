@@ -53,7 +53,7 @@ def iiif_links_fields(ctx: IndexerContext) -> SolrFields:
     manifest_uri_template = URITemplate(ctx.config['IIIF_MANIFESTS_URL_PATTERN'])
     thumbnail_uri_template = URITemplate(ctx.config['IIIF_THUMBNAIL_URL_PATTERN'])
 
-    pages = PageSequence(ctx)
+    pages = ctx.data.get('page_sequence', PageSequence(ctx))
     identifier = iiif_identifier(
         repo_path=ctx.resource.path,
         prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],

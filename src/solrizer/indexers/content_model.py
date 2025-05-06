@@ -76,6 +76,14 @@ FIELD_ARGUMENTS_BY_ATTR_NAME = {
 }
 """Field mappings for fields with particular property names."""
 
+SKIP_FIELDS_BY_MODEL = {
+    'Issue': {'first'},
+    'Item': {'first'},
+    'Letter': {'first'},
+    'Poster': {'first'},
+}
+"""Field names that should be skipped for each model."""
+
 
 def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
@@ -97,12 +105,17 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
             'content_model_prefix__str': prefix,
         }
     else:
+        model_name = None
         fields = {}
 
     for prop in obj.rdf_properties():
         if len(prop) == 0:
             # skip properties with no values
             logger.debug(f'Skipping empty property {prop.attr_name}')
+            continue
+        if prop.attr_name in SKIP_FIELDS_BY_MODEL.get(model_name, set()):
+            # explicitly skip these properties
+            logger.debug(f'Skipping property {prop.attr_name} of model {model_name}')
             continue
         if isinstance(prop, RDFDataProperty):
             fields.update(get_data_fields(prop, prefix))
