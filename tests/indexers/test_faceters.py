@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from plastron.client import Client, Endpoint
 from plastron.models.pcdm import PCDMObject
+from plastron.models import ContentModeledResource
 from plastron.models.umd import AdminSet
 from plastron.namespaces import dcterms, rdf, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
@@ -160,13 +161,19 @@ def test_admin_set_facet(get_mock_resource):
     ]
 )
 def test_ocr_facet(mocker, get_mock_resource, binary_resource, expected_values):
-    mocked_method = mocker.patch.object(PCDMObjectResource, 'get_file')
-    mocked_method.return_value = 'Fake Binary Resource just needs to not be None' if binary_resource else None
+    obj = ContentModeledResource()
+    mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
+    mock_resource.get_members.return_value = []
+    mock_resource.convert_to.return_value = mock_resource
 
-    obj = RDFResource()
+    if binary_resource:
+        mock_resource.get_file.return_value = 'Fake Binary Resource just needs to not be None'
+    else:
+        mock_resource.get_file.return_value = None
+
     ctx = IndexerContext(
         repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', obj),
+        resource=mock_resource,
         model_class=obj.__class__,
         doc={},
         config={},

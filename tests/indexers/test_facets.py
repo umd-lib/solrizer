@@ -1,12 +1,13 @@
 import pytest
 from plastron.client import Client, Endpoint
-from plastron.models import letter, umd
+from plastron.models import letter, umd, ContentModeledResource
 from plastron.models.letter import Letter
 from plastron.models.newspaper import Issue
 from plastron.models.poster import Poster
 from plastron.models.umd import Item
 from plastron.rdfmapping.resources import RDFResourceBase
 from plastron.repo import Repository
+from plastron.repo.pcdm import PCDMObjectResource
 from rdflib import Literal, URIRef
 
 from solrizer.indexers import IndexerContext
@@ -14,7 +15,7 @@ from solrizer.indexers.facets import facet_fields
 
 
 @pytest.mark.parametrize(
-    ('resource', 'expected_fields'),
+    ('obj', 'expected_fields'),
     [
         pytest.param(
             Item(
@@ -114,11 +115,17 @@ from solrizer.indexers.facets import facet_fields
         ),
     ],
 )
-def test_facet_fields(resource: RDFResourceBase, expected_fields, mock_vocabularies, get_mock_resource):
+def test_facet_fields(obj: RDFResourceBase, expected_fields, mock_vocabularies, get_mock_resource):
+
+    mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
+    mock_resource.get_members.return_value = []
+    mock_resource.convert_to.return_value = mock_resource
+    mock_resource.get_file.return_value = None
+
     ctx = IndexerContext(
         repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', resource),
-        model_class=resource.__class__,
+        resource=mock_resource,
+        model_class=obj.__class__,
         doc={},
         config={},
     )
