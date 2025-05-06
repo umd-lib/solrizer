@@ -161,7 +161,7 @@ def test_admin_set_facet(get_mock_resource):
         (False, None),
     ]
 )
-def test_ocr_facet(mocker, get_mock_resource, binary_resource, expected_values):
+def test_ocr_facet(get_mock_resource, binary_resource, expected_values):
     obj = ContentModeledResource()
     mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
     mock_resource.get_members.return_value = []
@@ -200,15 +200,14 @@ def test_presentation_set_attribute_error(get_mock_resource):
 @pytest.mark.parametrize(
     ('description', 'expected_value'),
     [
-        ('Censorship Information: CCD No.: 2223; CCD Action: Yes (deletion); Price: 6 yen', ['Yes']),
-        ('Censorship Information: CCD No.: 2223; Price: 6 yen', ['No']),
+        (Literal('Censorship Information: CCD No.: 2223; CCD Action: Yes (deletion); Price: 6 yen'), ['Yes']),
+        (Literal('Censorship Information: CCD No.: 2223; Price: 6 yen'), ['No']),
+        (Literal('Description not about Censorship'), None),
+        (None, None)
     ]
 )
-def test_ocr_facet(mocker, get_mock_resource, description, expected_value):
-    _get_labels = mocker.patch("solrizer.faceters.get_labels")
-    _get_labels.return_value = [description]
-
-    obj = Item()
+def test_censorship_facet(mocker, get_mock_resource, description, expected_value):
+    obj = Item(description=description) if description is not None else Item()
 
     ctx = IndexerContext(
         repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),

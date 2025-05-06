@@ -158,12 +158,22 @@ class CensorshipFacet(FacetBase):
     facet_name = 'censorship'
 
     def get_values(self) -> list[str] | None:
-        match self.ctx.obj:
-            case Item():
-                description: str = get_labels(self.ctx.obj.description)[0]
-                return ['Yes'] if 'CCD Action: Yes' in description else ['No']
-            case _:
-                return ['No']
+        if type(self.ctx.obj) is not Item:
+            return None
+
+        description = self.ctx.obj.description.value
+
+        if description is None:
+            return None
+
+        if 'Censorship Information' not in description:
+            return None
+
+        if 'CCD Action: Yes' in description:
+            return ['Yes']
+
+        else:
+            return ['No']
 
 
 class ContributorFacet(FacetBase):
