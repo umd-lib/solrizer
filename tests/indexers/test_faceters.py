@@ -4,8 +4,8 @@ import pytest
 from plastron.client import Client, Endpoint
 from plastron.models.pcdm import PCDMObject
 from plastron.models import ContentModeledResource
-from plastron.models.umd import AdminSet
-from plastron.namespaces import dcterms, rdf, umdaccess
+from plastron.models.umd import AdminSet, Item
+from plastron.namespaces import rdf, dcterms, rdf, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
@@ -14,6 +14,7 @@ from rdflib import Literal, URIRef
 
 from solrizer.faceters import (
     AdminSetFacet,
+    CensorshipFacet,
     FacetBase,
     OCRFacet,
     PresentationSetFacet,
@@ -160,7 +161,7 @@ def test_admin_set_facet(get_mock_resource):
         (False, None),
     ]
 )
-def test_ocr_facet(mocker, get_mock_resource, binary_resource, expected_values):
+def test_ocr_facet(get_mock_resource, binary_resource, expected_values):
     obj = ContentModeledResource()
     mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
     mock_resource.get_members.return_value = []
@@ -194,3 +195,27 @@ def test_presentation_set_attribute_error(get_mock_resource):
     )
     faceter = PresentationSetFacet(ctx)
     assert faceter.get_values() is None
+
+
+@pytest.mark.parametrize(
+    ('description', 'expected_value'),
+    [
+        (Literal('Censorship Information: CCD No.: 2223; CCD Action: Yes (deletion); Price: 6 yen'), ['Yes']),
+        (Literal('Censorship Information: CCD No.: 2223; Price: 6 yen'), ['No']),
+        (Literal('Description not about Censorship'), None),
+        (None, None)
+    ]
+)
+def test_censorship_facet(get_mock_resource, description, expected_value):
+    obj = Item(description=description) if description is not None else Item()
+
+    ctx = IndexerContext(
+        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
+        resource=get_mock_resource('/foo', obj),
+        model_class=obj.__class__,
+        doc={},
+        config={},
+    )
+
+    faceter = CensorshipFacet(ctx)
+    assert faceter.get_values() == expected_value

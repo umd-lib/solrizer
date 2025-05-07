@@ -32,7 +32,6 @@ test = [
     "pytest",
     "pytest-cov",
     "pytest-datadir",
-    "pytest-mock",
     "pycodestyle",
     "ruff",
 ]
@@ -58,6 +57,7 @@ aggregate_fields = "solrizer.indexers.aggregate_fields:aggregate_fields"
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"
 archival_collection = "solrizer.faceters:ArchivalCollectionFacet"
+censorship = "solrizer.faceters:CensorshipFacet"
 contributor = "solrizer.faceters:ContributorFacet"
 creator = "solrizer.faceters:CreatorFacet"
 has_ocr = "solrizer.faceters:OCRFacet"
