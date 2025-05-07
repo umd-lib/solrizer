@@ -14,6 +14,16 @@ source .venv/bin/activate
 pip install -e '.[dev,test]'
 ```
 
+Currently (2025-04-06), Solrizer requires a patched version of the 
+[python-edtf] module to correctly handle certain Level 2 [EDTF] date ranges. 
+To install it from GitHub:
+
+```zsh
+pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
+```
+
+The [Dockerfile](Dockerfile) includes this patch as well.
+
 Create a `.env` file with the following contents:
 
 ```
@@ -86,3 +96,7 @@ docker run --rm -it -p 5000:5000 --env-file .env docker.lib.umd.edu/solrizer
 
 See the [LICENSE](LICENSE.md) file for license rights and
 limitations (Apache 2.0).
+
+
+[python-edtf]: https://pypi.org/project/edtf/
+[EDTF]: https://www.loc.gov/standards/datetime/
