@@ -206,7 +206,7 @@ def test_presentation_set_attribute_error(get_mock_resource):
         (None, None)
     ]
 )
-def test_censorship_facet(mocker, get_mock_resource, description, expected_value):
+def test_censorship_facet(get_mock_resource, description, expected_value):
     obj = Item(description=description) if description is not None else Item()
 
     ctx = IndexerContext(
