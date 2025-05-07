@@ -11,15 +11,15 @@ git clone git@github.com:umd-lib/solrizer.git
 cd solrizer
 python -m venv --prompt "solrizer-py$(cat .python-version)" .venv
 source .venv/bin/activate
-pip install -e '.[dev,test]'
 ```
 
-Currently (2025-04-06), Solrizer requires a patched version of the 
-[python-edtf] module to correctly handle certain Level 2 [EDTF] date ranges. 
-To install it from GitHub:
+Currently (2025-05-06), Solrizer requires a patched version of the 
+[python-edtf] module to correctly handle certain Level 2 [EDTF] date 
+ranges, and it should be installed before the other dependencies. 
 
 ```zsh
 pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
+pip install -e '.[dev,test]'
 ```
 
 The [Dockerfile](Dockerfile) includes this patch as well.
