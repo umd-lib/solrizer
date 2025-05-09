@@ -11,15 +11,12 @@ Output fields:
 |-----------------------------|-------------|-------------------------------|
 | `page_label_sequence__txts` | `list[str]` | multivalued string, tokenized |
 | `page_uri_sequence__uris`   | `list[str]` | multivalued string            |
+| `page_count__int`           | `int`       | integer                       |
 """
-from collections.abc import Iterator
-from typing import Any
 
-from plastron.models.ore import Proxy
-from plastron.repo import RepositoryError
 from plastron.repo.pcdm import PCDMObjectResource
 
-from solrizer.indexers import IndexerContext, SolrFields, IndexerError
+from solrizer.indexers import IndexerContext, SolrFields
 
 
 def get_members_by_uri(ctx: IndexerContext) -> dict[str, dict]:
@@ -85,6 +82,7 @@ def page_sequence_fields(ctx: IndexerContext) -> SolrFields:
         return {
             'page_label_sequence__txts': pages.labels,
             'page_uri_sequence__uris': pages.uris,
+            'page_count__int': len(pages),
         }
     else:
         return {}
