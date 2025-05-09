@@ -12,6 +12,7 @@ dependencies = [
     "plastron-rdf>=4.4.0",
     "plastron-repo>=4.4.0",
     "plastron-utils>=4.4.0",
+    "psutil",
     "pyyaml",
     "python-dotenv",
     "python-iso639",
