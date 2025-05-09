@@ -10,30 +10,29 @@ Output fields:
 | Field                       | Python Type | Solr Type |
 |-----------------------------|-------------|-----------|
 | `content_model_name__str`   | `str`       | string    |
-| `content_model_prefix__str` | `str`       | string    |
 
 Output field patterns:
 
-| Field pattern                  | Python Type            | Solr Type                                 |
-|--------------------------------|------------------------|-------------------------------------------|
-| `{model}__{attr}__int`         | `int`                  | integer                                   |
-| `{model}__{attr}__ints`        | `list[int]`            | integer (multivalued)                     |
-| `{model}__{attr}__id`          | `str`                  | string                                    |
-| `{model}__{attr}__ids`         | `list[str]`            | string (multivalued)                      |
-| `{model}__{attr}__dt`          | `datetime`             | datetime range                            |
-| `{model}__{attr}__dts`         | `list[datetime]`       | datetime range (multivalued)              |
-| `{model}__{attr}__edtf`        | `str`                  | string                                    |
-| `{model}__{attr}__edtfs`       | `list[str]`            | string (multivalued)                      |
-| `{model}__{attr}__txt`         | `str`                  | tokenized text                            |
-| `{model}__{attr}__txts`        | `list[str]`            | tokenized text (multivalued)              |
-| `{model}__{attr}__txt_{lang}`  | `str`                  | tokenized text for `{lang}`               |
-| `{model}__{attr}__txt_{lang}s` | `list[str]`            | tokenized text for `{lang}` (multivalued) |
-| `{model}__{attr}__uri`         | `str`                  | string                                    |
-| `{model}__{attr}__uris`        | `list[str]`            | string (multivalued)                      |
-| `{model}__{attr}__curie`       | `str`                  | string                                    |
-| `{model}__{attr}__curies`      | `list[str]`            | string (multivalued)                      |
-| `{model}__{attr}`              | `list[dict[str, ...]]` | nested documents                          |
-| `{model}__{attr}__display`     | `list[str]`            | string (multivalued)                      |
+| Field pattern                 | Python Type            | Solr Type                                 |
+|-------------------------------|------------------------|-------------------------------------------|
+| `object__{attr}__int`         | `int`                  | integer                                   |
+| `object__{attr}__ints`        | `list[int]`            | integer (multivalued)                     |
+| `object__{attr}__id`          | `str`                  | string                                    |
+| `object__{attr}__ids`         | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__dt`          | `datetime`             | datetime range                            |
+| `object__{attr}__dts`         | `list[datetime]`       | datetime range (multivalued)              |
+| `object__{attr}__edtf`        | `str`                  | string                                    |
+| `object__{attr}__edtfs`       | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__txt`         | `str`                  | tokenized text                            |
+| `object__{attr}__txts`        | `list[str]`            | tokenized text (multivalued)              |
+| `object__{attr}__txt_{lang}`  | `str`                  | tokenized text for `{lang}`               |
+| `object__{attr}__txt_{lang}s` | `list[str]`            | tokenized text for `{lang}` (multivalued) |
+| `object__{attr}__uri`         | `str`                  | string                                    |
+| `object__{attr}__uris`        | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__curie`       | `str`                  | string                                    |
+| `object__{attr}__curies`      | `list[str]`            | string (multivalued)                      |
+| `object__{attr}`              | `list[dict[str, ...]]` | nested documents                          |
+| `object__{attr}__display`     | `list[str]`            | string (multivalued)                      |
 """
 
 import logging
@@ -89,20 +88,19 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=ctx.content_model_prefix)
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix='object__')
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
     names to values. If `obj` is an instance of `plastron.models.ContentModeledResource`,
-    include `content_model_name__str` and `content_model_prefix__str` fields in the results."""
+    include a `content_model_name__str` field in the results."""
     logger.info(f'Converting {obj.uri}')
 
     if isinstance(obj, ContentModeledResource):
         model_name = obj.__class__.model_name
         fields = {
             'content_model_name__str': model_name,
-            'content_model_prefix__str': prefix,
         }
     else:
         model_name = None

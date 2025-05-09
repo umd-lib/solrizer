@@ -13,7 +13,7 @@ from solrizer.indexers.page_sequence import get_members_by_uri, PageSequence, pa
 def doc(proxies) -> SolrFields:
     return {
         'id': 'foo',
-        'item__has_member': [
+        'object__has_member': [
             {'id': '/url1', 'page__title__txt': 'Bar 1'},
             {'id': '/url2', 'page__title__txt': 'Bar 2'},
             {'id': '/url3', 'page__title__txt': 'Bar 3'},

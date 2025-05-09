@@ -24,7 +24,7 @@ from solrizer.indexers import IndexerContext, SolrFields, IndexerError
 
 def get_members_by_uri(ctx: IndexerContext) -> dict[str, dict]:
     """Create a dictionary mapping member URIs to the members' index documents."""
-    member_list: list[dict] = ctx.doc.get(ctx.content_model_prefix + 'has_member', [])
+    member_list: list[dict] = ctx.doc.get('object__has_member', [])
     return {member['id']: member for member in member_list}
 
 

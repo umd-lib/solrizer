@@ -47,7 +47,7 @@ def test_iiif_links_fields(monkeypatch, proxies, create_mock_repo):
         model_class=Item,
         doc={
             'id': 'http://example.com/fcrepo/foo',
-            'item__has_member': members,
+            'object__has_member': members,
         },
         config={
             'IIIF_IDENTIFIER_PREFIX': 'fcrepo:',
