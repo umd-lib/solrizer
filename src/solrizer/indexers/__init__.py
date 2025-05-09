@@ -94,7 +94,9 @@ class IndexerContext[ModelType: ContentModeledResource]:
             except KeyError as e:
                 raise IndexerError(f'No indexer named {e} is registered')
 
+            logger.info(f'Running indexer "{name}"')
             self.settings = self.config.get('INDEXER_SETTINGS', {}).get(name, {})
+            logger.debug(f'Indexer {name} settings: {self.settings}')
 
             try:
                 self.doc.update(indexer(self))
