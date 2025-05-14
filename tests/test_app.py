@@ -66,7 +66,6 @@ def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
     result = response.json
     assert result['id'] == 'http://example.com/fcrepo/foo'
     assert result['content_model_name__str'] == 'Item'
-    assert result['content_model_prefix__str'] == 'item__'
 
 
 @httpretty.activate()
@@ -103,7 +102,6 @@ def test_doc_with_add_command(datadir, client, repo):
     doc = result['add']['doc']
     assert doc['id'] == 'http://example.com/fcrepo/foo'
     assert doc['content_model_name__str'] == 'Item'
-    assert doc['content_model_prefix__str'] == 'item__'
 
 
 @httpretty.activate()
@@ -122,7 +120,6 @@ def test_doc_with_update_command(datadir, client, repo):
     doc = result[0]
     assert doc['id'] == 'http://example.com/fcrepo/foo'
     assert doc['content_model_name__str'] == {'set': 'Item'}
-    assert doc['content_model_prefix__str'] == {'set': 'item__'}
 
 
 @httpretty.activate()

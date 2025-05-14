@@ -73,12 +73,6 @@ class IndexerContext[ModelType: ContentModeledResource]:
     data: MutableMapping[str, Any] = field(default_factory=dict)
     """Arbitrary data to be shared between indexers"""
 
-    @property
-    def content_model_prefix(self) -> str:
-        """String used by the `solrizer.indexers.content_model` indexer to
-        prefix field names."""
-        return self.model_class.__name__.lower() + '__'
-
     @cached_property
     def obj(self) -> ModelType:
         """The `resource`, described using the `model_class`. This is a
