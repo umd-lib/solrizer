@@ -2,11 +2,13 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from plastron.models.umd import Item
 from plastron.namespaces import pcdmuse
 from plastron.repo.pcdm import PCDMObjectResource
 
-from solrizer.indexers import IndexerError
-from solrizer.indexers.extracted_text import get_text_page, PageText, get_text_pages
+from conftest import create_mock_repo
+from solrizer.indexers import IndexerError, IndexerContext
+from solrizer.indexers.extracted_text import get_text_page, PageText, get_text_pages, extracted_text_fields
 
 
 class MockBinaryResource:
@@ -170,3 +172,17 @@ def test_pages_with_no_files():
 
     pages = get_text_pages(mock_resource)
     assert len(pages) == 0
+
+
+def test_extracted_text_fields(create_mock_repo):
+    mock_repo = create_mock_repo({'/foo': Item()})
+    target_resource = mock_repo['/foo']
+    ctx = IndexerContext(
+        repo=mock_repo,
+        resource=target_resource,
+        model_class=target_resource.describe().__class__,
+        doc={},
+        config={},
+    )
+    fields = extracted_text_fields(ctx)
+    assert fields == {}
