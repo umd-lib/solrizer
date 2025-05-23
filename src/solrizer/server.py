@@ -1,3 +1,18 @@
+"""Solrizer web application served by the Waitress WSGI server.
+It is registered as a script entry point with the name `solrizer`.
+
+```
+$ solrizer -h
+Usage: solrizer [OPTIONS]
+
+Options:
+  --listen [ADDRESS]:PORT  Address and port to listen on. Default is
+                           "0.0.0.0:5000".
+  -V, --version            Show the version and exit.
+  -h, --help               Show this message and exit.
+```
+"""
+
 import logging
 
 import click

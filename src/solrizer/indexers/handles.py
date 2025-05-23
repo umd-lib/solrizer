@@ -42,7 +42,7 @@ def handle_fields(ctx: IndexerContext) -> SolrFields:
 def find_handle_property(obj: ContentModeledResource) -> RDFDataProperty | None:
     """Find and return the first `RDFDataProperty` in the given object that has
     a datatype of `umdtype:handle` (<http://vocab.lib.umd.edu/datatype#handle>).
-    Returns none if no such property can be found."""
+    Returns `None` if no such property can be found."""
     for prop in obj.rdf_properties():
         if isinstance(prop, RDFDataProperty) and prop.datatype == umdtype.handle:
             return prop

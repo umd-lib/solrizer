@@ -59,7 +59,6 @@ class Handle(NamedTuple):
         * a tuple with 2 elements (prefix and suffix)
         * a string of the form `hdl:{prefix}/{suffix}`
         * a string of the form `info:hdl/{prefix}/{suffix}`
-        * a string of the form `hdl:{prefix}/{suffix}`
         * a string of the form `{proxy_base}{prefix}/{suffix}`, where `proxy_base` is
           the base URL for a handle proxy service
 

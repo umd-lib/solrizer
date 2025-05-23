@@ -2,6 +2,10 @@
 
 RDF to Solr document converter microservice
 
+## Configuration
+
+See `solrizer.web`
+
 ## Development Setup
 
 Requires Python 3.12
@@ -29,7 +33,7 @@ Create a `.env` file with the following contents:
 ```
 FLASK_DEBUG=1
 SOLRIZER_FCREPO_ENDPOINT={URL of fcrepo instance}
-SOLRIZER_FCREPO_JWT_TOKEN={authentication token}
+SOLRIZER_FCREPO_JWT_SECRET={shared secret for generating auth tokens}
 SOLRIZER_IIIF_IDENTIFIER_PREFIX=fcrepo:
 SOLRIZER_IIIF_MANIFESTS_URL_PATTERN={URI template for IIIF manifests}
 SOLRIZER_IIIF_THUMBNAIL_URL_PATTERN={URI template for IIIF thumbnail images}
@@ -39,7 +43,7 @@ SOLRIZER_HANDLE_PROXY_PREFIX={URL of handle proxy server}
 ```
 
 In the IIIF URI templates, use `{+id}` as the placeholder for the IIIF 
-identifier of the resource being indexed.
+identifier.
 
 ### Running
 

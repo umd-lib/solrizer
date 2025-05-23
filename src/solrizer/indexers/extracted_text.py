@@ -7,10 +7,12 @@ Prerequisites: None
 
 Output fields:
 
-| Field              | Python Type | Solr Type                                    |
-|--------------------|-------------|----------------------------------------------|
-| `content__dps_txt` | `str`       | tokenized text with delimited string payload |
+| Field                     | Python Type | Solr Type                                    |
+|---------------------------|-------------|----------------------------------------------|
+| `extracted_text__dps_txt` | `str`       | tokenized text with delimited string payload |
+| `extracted_text__txt`     | `str`       | tokenized text                               |
 """
+
 from collections.abc import Iterator
 from dataclasses import dataclass
 from urllib.parse import urlencode
@@ -40,6 +42,9 @@ class PageText:
 
 
 def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
+    """Indexer function that adds fields containing the extracted text
+    (if present) for the indexed resource."""
+
     pcdm_resource = ctx.resource.convert_to(PCDMObjectResource)
     text_pages = get_text_pages(pcdm_resource)
 
@@ -57,6 +62,9 @@ def extracted_text_fields(ctx: IndexerContext) -> SolrFields:
 
 
 def get_text_pages(resource: AggregationResource) -> list[PageText]:
+    """Iterates over the given aggregation resource and returns a list
+    of `PageText` objects for those pages that have extracted text, as
+    determined by the `get_text_page()` function."""
     text_pages: list[PageText] = []
     for n, page_resource in enumerate(resource.get_sequence(PCDMObjectResource)):  # type: int, PCDMObjectResource
         page = get_text_page(page_resource, n)

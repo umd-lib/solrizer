@@ -7,12 +7,12 @@ Prerequisites: Must run **after** the [`content_model`](./content_model) indexer
 
 Output field patterns:
 
-| Field pattern                                      | Python Type | Solr Type      |
-|----------------------------------------------------|-------------|----------------|
-| `{model}__{attr}__dt`                              | `str`       | datetime range |
-| `{model}__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
-| `{model}__{attr}__dt_is_approximate`               | `bool`      | boolean        |
-| `{model}__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
+| Field pattern                                     | Python Type | Solr Type      |
+|---------------------------------------------------|-------------|----------------|
+| `object__{attr}__dt`                              | `str`       | datetime range |
+| `object__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
+| `object__{attr}__dt_is_approximate`               | `bool`      | boolean        |
+| `object__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
 """
 
 import logging

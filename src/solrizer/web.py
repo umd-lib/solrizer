@@ -1,3 +1,62 @@
+"""Solrizer web application.
+
+This web application is built using the [Flask](https://flask.palletsprojects.com/)
+framework.
+
+## Configuration
+
+Configuration of the application is handled by a combination of
+[environment variables](#environment) and [configuration files](#files).
+
+### Environment
+
+* **`SOLRIZER_FCREPO_ENDPOINT`** URL of the fcrepo repository.
+* **`SOLRIZER_FCREPO_JWT_SECRET`** Shared secret used to generate
+  access tokens to connect to the fcrepo repository.
+* **`SOLRIZER_HANDLE_PROXY_PREFIX`** HTTP URL of the handle service
+  resolver that should be prepended to a handle to make a resolvable
+  URL. See the `solrizer.indexers.handles` indexer for more information
+  about the handles indexer.
+* **`SOLRIZER_IIIF_IDENTIFIER_PREFIX`** Prefix to use when generating
+  IIIF identifiers from repository URIs. See the `solrizer.indexers.iiif_links`
+  indexer module for more information about the IIIF indexer.
+* **`SOLRIZER_IIIF_MANIFESTS_URL_PATTERN`** URL template for IIIF manifests.
+  Use `{+id}` to insert the IIIF identifier of the top-level object.
+* **`SOLRIZER_IIIF_THUMBNAIL_URL_PATTERN`** URL template for IIIF image server
+  URLs for individual thumbnail images. Use `{+id}` to insert the IIIF
+  identifier for the image.
+* **`SOLRIZER_INDEXERS_FILE`** Name of the file listing which
+  indexers to use for each content model.
+* **`SOLRIZER_INDEXER_SETTINGS_FILE`** Name of the file that
+  contains indexer-specific configuration.
+
+During development, it is also useful to set `FLASK_DEBUG=1` to enable
+Flask's debug mode, which includes detailed error pages and hot reloading
+when the source code is updated.
+
+### Files
+
+Files may be in YAML or JSON format, with the suffixes ".yml"/".yaml" or
+".json", respectively. Their contents here are described in terms of the
+Python data structures that are deserialized from them. See the
+`load_config_from_files()` function for more details.
+
+* **Indexers file (`SOLRIZER_INDEXERS_FILE`)** Dictionary of Plastron
+  content model names to lists of indexers that should be run for objects
+  with that content model.
+
+  If no entry for a content model is found, the system looks for a
+  `__default__` entry instead. If that is not found, it uses the
+  hardcoded default of just the `solrizer.indexers.content_model`
+  indexer.
+
+* **Indexer settings file (`SOLRIZER_INDEXER_SETTINGS_FILE`)** Dictionary
+  of indexer names to settings for that particular indexer. See the
+  individual indexer modules for a description of what setting they support.
+
+---
+"""
+
 import json
 import logging
 from pathlib import Path
