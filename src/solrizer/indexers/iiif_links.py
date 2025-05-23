@@ -19,6 +19,7 @@ Output fields:
 | `iiif_thumbnail_sequence__ids`        | `list[str]` | multivalued string |
 | `iiif_thumbnail_sequence__uris`       | `list[str]` | multivalued string |
 """
+from typing import Any
 
 from uritemplate import URITemplate
 
@@ -58,16 +59,27 @@ def iiif_links_fields(ctx: IndexerContext) -> SolrFields:
         repo_path=ctx.resource.path,
         prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
     )
-    thumbnail_identifiers = [
-        iiif_identifier(
-            repo_path=ctx.repo.endpoint.repo_path(page['page__has_file'][0]['id']),
-            prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
-        )
-        for page in pages
-    ]
+    thumbnail_identifiers = [get_first_file_identifier(ctx, page) for page in pages]
     return {
         'iiif_manifest__id': identifier,
         'iiif_manifest__uri': manifest_uri_template.expand(id=identifier),
         'iiif_thumbnail_sequence__ids': thumbnail_identifiers,
         'iiif_thumbnail_sequence__uris': [thumbnail_uri_template.expand(id=id) for id in thumbnail_identifiers],
     }
+
+
+def get_first_file_identifier(ctx: IndexerContext, page: SolrFields) -> str:
+    """Given an `IndexerContext` and a page dictionary, returns the IIIF
+    identifier for the first file of that page, or "static:unavailable" if
+    the URI of the first file cannot be retrieved from the `page` for any
+    reason."""
+    try:
+        file: dict[str, Any] = page['page__has_file'][0]
+        file_uri = file['id']
+    except KeyError:
+        return 'static:unavailable'
+    else:
+        return iiif_identifier(
+            repo_path=ctx.repo.endpoint.repo_path(file_uri),
+            prefix=ctx.config['IIIF_IDENTIFIER_PREFIX'],
+        )
