@@ -1,14 +1,17 @@
-from uuid import uuid4
+from collections.abc import Mapping
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 import plastron.models.authorities
 import plastron.validation.vocabularies
 import pytest
-from plastron.repo import RepositoryResource
-from rdflib import Graph
+from plastron.client import Endpoint
+from plastron.models import ContentModeledResource
+from plastron.repo import RepositoryResource, Repository
+from plastron.repo.pcdm import PCDMObjectResource, ProxyIterator
+from rdflib import Graph, URIRef
 
-import solrizer.web
-from solrizer.indexers import SolrFields
+from solrizer.indexers import SolrFields, IndexerContext
 from solrizer.web import create_app
 
 
@@ -39,6 +42,43 @@ def proxies() -> SolrFields:
 
 
 @pytest.fixture
+def create_mock_repo():
+    def _create_mock_repo(
+        paths: Mapping[str, ContentModeledResource | tuple[ContentModeledResource, type[RepositoryResource]]] = None,
+        repo_url: str = 'http://example.com/fcrepo',
+    ) -> Repository:
+        def _lookup_path(key):
+            if isinstance(key, slice):
+                return str(key.start).replace(repo_url, '')
+            else:
+                return str(key).replace(repo_url, '')
+
+        uri_mapping = {}
+        mock_repo = MagicMock(spec=Repository)
+        mock_repo.__getitem__ = lambda self, key: uri_mapping[URIRef(repo_url + _lookup_path(key))]
+        mock_repo.endpoint = Endpoint(repo_url)
+        for path, obj_def in (paths or {}).items():
+            if isinstance(obj_def, tuple):
+                obj = obj_def[0]
+                cls = obj_def[1]
+            else:
+                obj = obj_def
+                cls = PCDMObjectResource
+            resource = MagicMock(spec=cls)
+            resource.repo = mock_repo
+            resource.convert_to.return_value = resource
+            resource.read.return_value = resource
+            resource.describe.return_value = obj
+            resource.path = path
+            resource._graph = obj.graph
+            resource.get_sequence.return_value = ProxyIterator(resource)
+            uri_mapping[URIRef(repo_url + path)] = resource
+
+        return mock_repo
+    return _create_mock_repo
+
+
+@pytest.fixture
 def mock_vocabularies(monkeypatch, shared_datadir):
     def _get_vocabulary_graph(uri: str):
         basename = uri.split('#', 1)[0].rsplit('/', 1)[-1]
@@ -54,8 +94,10 @@ def mock_vocabularies(monkeypatch, shared_datadir):
 
 @pytest.fixture
 def get_mock_resource():
-    def _mock_resource(path, obj):
-        mock_resource = MagicMock(spec=RepositoryResource, path=path)
+    def _mock_resource(path, obj, resource_class=RepositoryResource):
+        mock_resource = MagicMock(spec=resource_class, path=path)
+        mock_resource.read.return_value = mock_resource
+        mock_resource.convert_to.return_value = mock_resource
         mock_resource.describe.return_value = obj
         return mock_resource
     return _mock_resource

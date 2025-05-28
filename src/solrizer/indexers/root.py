@@ -23,6 +23,10 @@ from solrizer.indexers import IndexerContext, SolrFields, IndexerError
 
 
 def find_top_level_resource_uri(ctx: IndexerContext, obj: ContentModeledResource) -> Optional[URIRef]:
+    """Given a resource, attempt to determine the top-level object to which it
+    ultimately belongs by following the `member_of` and/or `file_of` properties.
+    Raises an `IndexerError` if the resource has neither of those properties."""
+
     if hasattr(obj, 'member_of'):
         parent_uri = obj.member_of.value
     elif hasattr(obj, 'file_of'):
@@ -39,6 +43,10 @@ def find_top_level_resource_uri(ctx: IndexerContext, obj: ContentModeledResource
 
 
 def root_field(ctx: IndexerContext) -> SolrFields:
+    """Indexer function that adds a `_root_` field (used by Solr to manage
+    nested documents) for any non-top-level resources being indexed. If the
+    resource is a top-level resource, this indexer does not add the field."""
+
     if ctx.model_class.is_top_level:
         return {}
 

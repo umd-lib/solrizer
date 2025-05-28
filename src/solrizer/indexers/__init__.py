@@ -33,9 +33,10 @@ doc = ctx.run(['content_model', 'discoverability', 'page_sequence'])
 """
 import importlib.metadata
 import logging
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, MutableMapping
+from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, Mapping, Any
+from typing import Any
 
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
@@ -67,12 +68,10 @@ class IndexerContext[ModelType: ContentModeledResource]:
     """The current state of the Solr index document."""
     config: Mapping[str, Any]
     """Additional configuration."""
-
-    @property
-    def content_model_prefix(self) -> str:
-        """String used by the `solrizer.indexers.content_model` indexer to
-        prefix field names."""
-        return self.model_class.__name__.lower()
+    settings: Mapping[str, Any] = None
+    """Alias to configuration for the currently executing indexer."""
+    data: MutableMapping[str, Any] = field(default_factory=dict)
+    """Arbitrary data to be shared between indexers"""
 
     @cached_property
     def obj(self) -> ModelType:
@@ -88,6 +87,10 @@ class IndexerContext[ModelType: ContentModeledResource]:
                 indexer = AVAILABLE_INDEXERS[name].load()
             except KeyError as e:
                 raise IndexerError(f'No indexer named {e} is registered')
+
+            logger.info(f'Running indexer "{name}"')
+            self.settings = self.config.get('INDEXER_SETTINGS', {}).get(name, {})
+            logger.debug(f'Indexer {name} settings: {self.settings}')
 
             try:
                 self.doc.update(indexer(self))

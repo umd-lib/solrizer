@@ -1,0 +1,25 @@
+handles:
+  proxy_prefix: ${HANDLE_PROXY_PREFIX}
+  possible_handle_fields:
+    - archival_collection__same_as__uris
+    - accession_number__id
+
+aggregate_fields:
+  text:
+    - .item__title__txt?
+    - .issue__title__txt?
+    - .item__description__txt?
+    - .item__archival_collection__label__txt?
+    - .item__bibliographic_citation__txt?
+    - ..|objects|.agent__label__txt
+    - ..|objects|.subject__label__txt
+    - ..|objects|.place__label__txt
+  identifier:
+    - .id
+    - .item__identifier__ids[]?
+    - .item__handle__id?
+    - .item__accession_number__id?
+    - .iiif_manifest__id
+    - .handle__id
+    - .handle__uri
+    - .handle_proxied__uri

@@ -5,24 +5,38 @@ Indexer implementation function: `content_model_fields()`
 
 Prerequisites: None
 
+Output fields:
+
+| Field                       | Python Type | Solr Type |
+|-----------------------------|-------------|-----------|
+| `content_model_name__str`   | `str`       | string    |
+
 Output field patterns:
 
-| Field pattern                 | Python Type            | Solr Type                   |
-|-------------------------------|------------------------|-----------------------------|
-| `{model}__{attr}__int`        | `int`                  | integer                     |
-| `{model}__{attr}__id`         | `str`                  | string                      |
-| `{model}__{attr}__dt`         | `datetime`             | datetime range              |
-| `{model}__{attr}__edtf`       | `str`                  | string                      |
-| `{model}__{attr}__txt`        | `str`                  | tokenized text              |
-| `{model}__{attr}__txt_{lang}` | `str`                  | tokenized text for `{lang}` |
-| `{model}__{attr}__uri`        | `str`                  | string                      |
-| `{model}__{attr}__curie`      | `str`                  | string                      |
-| `{model}__{attr}`             | `list[dict[str, ...]]` | nested document             |
+| Field pattern                 | Python Type            | Solr Type                                 |
+|-------------------------------|------------------------|-------------------------------------------|
+| `object__{attr}__int`         | `int`                  | integer                                   |
+| `object__{attr}__ints`        | `list[int]`            | integer (multivalued)                     |
+| `object__{attr}__id`          | `str`                  | string                                    |
+| `object__{attr}__ids`         | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__dt`          | `datetime`             | datetime range                            |
+| `object__{attr}__dts`         | `list[datetime]`       | datetime range (multivalued)              |
+| `object__{attr}__edtf`        | `str`                  | string                                    |
+| `object__{attr}__edtfs`       | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__txt`         | `str`                  | tokenized text                            |
+| `object__{attr}__txts`        | `list[str]`            | tokenized text (multivalued)              |
+| `object__{attr}__txt_{lang}`  | `str`                  | tokenized text for `{lang}`               |
+| `object__{attr}__txt_{lang}s` | `list[str]`            | tokenized text for `{lang}` (multivalued) |
+| `object__{attr}__uri`         | `str`                  | string                                    |
+| `object__{attr}__uris`        | `list[str]`            | string (multivalued)                      |
+| `object__{attr}__curie`       | `str`                  | string                                    |
+| `object__{attr}__curies`      | `list[str]`            | string (multivalued)                      |
+| `object__{attr}`              | `list[dict[str, ...]]` | nested documents                          |
+| `object__{attr}__display`     | `list[str]`            | string (multivalued)                      |
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Iterable, Callable, Iterator
+from collections.abc import Iterator, Iterable, Callable
 
 from langcodes import standardize_tag, LanguageTagError
 from plastron.models import ContentModeledResource
@@ -34,14 +48,9 @@ from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import Literal, URIRef
 
 from solrizer.indexers import SolrFields, IndexerContext, IndexerError
+from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
-
-
-def solr_date(dt_string: str) -> str:
-    dt = datetime.fromisoformat(dt_string).astimezone(timezone.utc)
-    return dt.isoformat(sep='T').replace('+00:00', 'Z')
-
 
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
@@ -49,7 +58,7 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
     xsd.integer: {'suffix': '__int', 'converter': int},
     xsd.long: {'suffix': '__int', 'converter': int},
     # datetime type
-    xsd.dateTime: {'suffix': '__dt', 'converter': solr_date},
+    xsd.dateTime: {'suffix': '__dt', 'converter': solr_datetime},
     # identifier types
     umdtype.accessionNumber: {'suffix': '__id'},
     umdtype.handle: {'suffix': '__id'},
@@ -57,38 +66,54 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
 """Field mappings for RDF literals with particular datatypes."""
 
 FIELD_ARGUMENTS_BY_ATTR_NAME = {
+    'created_by': {'suffix': '__str'},
     'date': {'suffix': '__edtf'},
+    'filename': {'suffix': '__str'},
     'identifier': {'suffix': '__id'},
+    'last_modified_by': {'suffix': '__str'},
+    'mime_type': {'suffix': '__str'},
 }
 """Field mappings for fields with particular property names."""
+
+SKIP_FIELDS_BY_MODEL = {
+    'Issue': {'first'},
+    'Item': {'first'},
+    'Letter': {'first'},
+    'Poster': {'first'},
+}
+"""Field names that should be skipped for each model."""
 
 
 def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=ctx.model_class.model_name.lower() + '__')
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix='object__')
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
     names to values. If `obj` is an instance of `plastron.models.ContentModeledResource`,
-    include `content_model_name__str` and `content_model_prefix__str` fields in the results."""
+    include a `content_model_name__str` field in the results."""
     logger.info(f'Converting {obj.uri}')
 
     if isinstance(obj, ContentModeledResource):
         model_name = obj.__class__.model_name
         fields = {
             'content_model_name__str': model_name,
-            'content_model_prefix__str': prefix,
         }
     else:
+        model_name = None
         fields = {}
 
     for prop in obj.rdf_properties():
         if len(prop) == 0:
             # skip properties with no values
             logger.debug(f'Skipping empty property {prop.attr_name}')
+            continue
+        if prop.attr_name in SKIP_FIELDS_BY_MODEL.get(model_name, set()):
+            # explicitly skip these properties
+            logger.debug(f'Skipping property {prop.attr_name} of model {model_name}')
             continue
         if isinstance(prop, RDFDataProperty):
             fields.update(get_data_fields(prop, prefix))
@@ -135,9 +160,10 @@ def language_suffix(language: str | None) -> str:
     >>> language_suffix('eng')
     '_en'
     >>> language_suffix('jpn-LATN')
-    '_ja-latn'
+    '_ja_latn'
     >>> language_suffix(None)
     ''
+
     ```
     """
     if language is not None:
@@ -173,6 +199,7 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
         else:
             # everything else is treated as text
             fields = {}
+            # divide values up by language
             for language in prop.languages:
                 fields.update(get_field(
                     prop=prop,
@@ -180,6 +207,10 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
                     suffix='__txt' + language_suffix(language),
                     value_filter=lambda v: v.language == language,
                 ))
+            # add a `__display` field that contains all the values, with embedded language tags
+            fields.update({f'{prefix}{prop.attr_name}__display': [
+                embed_language_tag(v, '[@{tag}]{value}') for v in prop.values
+            ]})
             return fields
 
 
@@ -259,3 +290,26 @@ def shorten_uri(uri: str) -> str | None:
         return namespace_manager.curie(uri, generate=False)
     except (KeyError, ValueError):
         return str(uri)
+
+
+def embed_language_tag(value: Literal, template: str = '{value}|{tag}') -> str:
+    """Convert the given RDF literal `value` to a string. If the value has a language
+    tag, use the given `template` to format the value and standardized language tag as
+    a string. The default `template` is `{value}|{tag}`.
+
+    ```pycon
+    >>> embed_language_tag(Literal('dog'))
+    'dog'
+
+    >>> embed_language_tag(Literal('Hund', lang='de'))
+    'Hund|de'
+
+    >>> embed_language_tag(Literal('Hund', lang='de'), template='[@{tag}]{value}')
+    '[@de]Hund'
+
+    ```
+    """
+    if value.language:
+        return template.format(value=value, tag=standardize_tag(value.language))
+    else:
+        return str(value)

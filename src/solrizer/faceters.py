@@ -6,9 +6,11 @@ properties they are based on for the different content models.
 |---------------------------|-----------------------|-----------------------------|--------------------------|--------------------------|--------------------------|
 | `ArchivalCollectionFacet` | `archival_collection` | `archival_collection.label` | `part_of.label`          | `part_of`                | —                        |
 | `ContributorFacet`        | `contributor`         | `contributor.label`         | —                        | —                        | —                        |
+| `CensorshipFacet`         | `censorship`          | `description.label`         | —                        | —                        | —                        |
 | `CreatorFacet`            | `creator`             | `creator.label`             | `author.label`           | —                        | —                        |
 | `LanguageFacet`           | `language`            | `language`¹                 | `language`¹              | `language`               | —                        |
 | `LocationFacet`           | `location`            | `location.label`            | `place.label`            | `location`               | —                        |
+| `OCRFacet`                | `has_ocr`             | N/A⁴                        | N/A⁴                     | N/A⁴                     | N/A⁴                     |
 | `PresentationSetFacet`    | `presentation_set`    | `presentation_set.label`    | `presentation_set.label` | `presentation_set.label` | `presentation_set.label` |
 | `PublicationStatusFacet`  | `publication_status`  | `rdf_type`                  | `rdf_type`               | `rdf_type`               | `rdf_type`               |
 | `PublisherFacet`          | `publisher`           | `publisher.label`           | —                        | `publisher.label`        | —                        |
@@ -27,17 +29,22 @@ property up to the first comma.
 
 ³ For these properties, `rights_statement_label()` is used to correlate a
 rightsstatement.org URL to a vocab.lib.umd.edu term and its label.
+
+⁴ For the OCR facet, the value is "Has OCR" if the object or any of its members
+have an extracted text file. If no extracted text files are found, the facet is
+omitted.
 """  # noqa: E501
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from iso639 import Language, LanguageNotFoundError
 from plastron.models.letter import Letter
 from plastron.models.poster import Poster
 from plastron.models.umd import AdminSet, Item
-from plastron.namespaces import owl, rdfs, umdaccess
+from plastron.namespaces import owl, pcdmuse, rdfs, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
+from plastron.repo.pcdm import PCDMObjectResource
 from plastron.validation.vocabularies import Vocabulary
 from rdflib import URIRef
 
@@ -68,7 +75,7 @@ def language_name(code: str) -> str:
         return Language.match(str(code)).name
     except LanguageNotFoundError:
         logger.warning(f'Cannot match {code} to an ISO 639 language code')
-        return code
+        return str(code)
 
 
 def concat_values(prop: RDFDataProperty, separator: str = ' / ') -> str:
@@ -139,6 +146,34 @@ class ArchivalCollectionFacet(FacetBase):
                 return [str(self.ctx.obj.part_of.value)]
             case _:
                 return None
+
+
+class CensorshipFacet(FacetBase):
+    """Censorship facet.
+
+    Returns "Yes" if the text "CCD Action: Yes" is present in the Item description.
+    For any Items where the above text is not present, the value should be "No".
+    """
+
+    facet_name = 'censorship'
+
+    def get_values(self) -> list[str] | None:
+        if type(self.ctx.obj) is not Item:
+            return None
+
+        description = self.ctx.obj.description.value
+
+        if description is None:
+            return None
+
+        if 'Censorship Information' not in description:
+            return None
+
+        if 'CCD Action: Yes' in description:
+            return ['Yes']
+
+        else:
+            return ['No']
 
 
 class ContributorFacet(FacetBase):
@@ -218,6 +253,29 @@ class LocationFacet(FacetBase):
                 return None
 
 
+class OCRFacet(FacetBase):
+    """OCR facet.
+
+    If the object or any of its members have a file with RDF type
+    `pcdmuse:ExtractedText`, returns the value "Has OCR". If not,
+    returns `None` to suppress the creation of a `has_ocr__facet`
+    field for this resource."""
+
+    facet_name = 'has_ocr'
+
+    def get_values(self) -> list[str] | None:
+        pcdm_resource = self.ctx.resource.convert_to(PCDMObjectResource)
+        # check top level
+        if pcdm_resource.get_file(rdf_type=pcdmuse.ExtractedText):
+            return ['Has OCR']
+        else:
+            # check member resources
+            for member_resource in pcdm_resource.get_members():
+                if member_resource.get_file(rdf_type=pcdmuse.ExtractedText):
+                    return ['Has OCR']
+            return None
+
+
 class PresentationSetFacet(FacetBase):
     """Presentation set facet.
 
@@ -276,7 +334,7 @@ class RDFTypeFacet(FacetBase):
     facet_name = 'rdf_type'
 
     def get_values(self) -> list[str] | None:
-        return self.ctx.doc.get(f'{self.ctx.content_model_prefix}__rdf_type__curies', None)
+        return self.ctx.doc.get('object__rdf_type__curies', None)
 
 
 class ResourceTypeFacet(FacetBase):

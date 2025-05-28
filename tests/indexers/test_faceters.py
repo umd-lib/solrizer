@@ -3,15 +3,28 @@ from unittest.mock import MagicMock
 import pytest
 from plastron.client import Client, Endpoint
 from plastron.models.pcdm import PCDMObject
-from plastron.models.umd import AdminSet
-from plastron.namespaces import rdf, dcterms, umdaccess
+from plastron.models import ContentModeledResource
+from plastron.models.umd import AdminSet, Item
+from plastron.namespaces import rdf, dcterms, rdf, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
+from plastron.repo.pcdm import PCDMObjectResource
 from rdflib import Literal, URIRef
 
-from solrizer.faceters import language_name, rights_statement_label, concat_values, get_labels, FacetBase, \
-    VisibilityFacet, PublicationStatusFacet, AdminSetFacet, PresentationSetFacet
+from solrizer.faceters import (
+    AdminSetFacet,
+    CensorshipFacet,
+    FacetBase,
+    OCRFacet,
+    PresentationSetFacet,
+    PublicationStatusFacet,
+    VisibilityFacet,
+    concat_values,
+    get_labels,
+    language_name,
+    rights_statement_label,
+)
 from solrizer.indexers import IndexerContext
 
 
@@ -141,6 +154,36 @@ def test_admin_set_facet(get_mock_resource):
     assert faceter.get_values() == ['Test Admin Set']
 
 
+@pytest.mark.parametrize(
+    ('binary_resource', 'expected_values'),
+    [
+        (True, ['Has OCR']),
+        (False, None),
+    ]
+)
+def test_ocr_facet(get_mock_resource, binary_resource, expected_values):
+    obj = ContentModeledResource()
+    mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
+    mock_resource.get_members.return_value = []
+    mock_resource.convert_to.return_value = mock_resource
+
+    if binary_resource:
+        mock_resource.get_file.return_value = 'Fake Binary Resource just needs to not be None'
+    else:
+        mock_resource.get_file.return_value = None
+
+    ctx = IndexerContext(
+        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
+        resource=mock_resource,
+        model_class=obj.__class__,
+        doc={},
+        config={},
+    )
+
+    faceter = OCRFacet(ctx)
+    assert faceter.get_values() == expected_values
+
+
 def test_presentation_set_attribute_error(get_mock_resource):
     obj = RDFResource()
     ctx = IndexerContext(
@@ -152,3 +195,27 @@ def test_presentation_set_attribute_error(get_mock_resource):
     )
     faceter = PresentationSetFacet(ctx)
     assert faceter.get_values() is None
+
+
+@pytest.mark.parametrize(
+    ('description', 'expected_value'),
+    [
+        (Literal('Censorship Information: CCD No.: 2223; CCD Action: Yes (deletion); Price: 6 yen'), ['Yes']),
+        (Literal('Censorship Information: CCD No.: 2223; Price: 6 yen'), ['No']),
+        (Literal('Description not about Censorship'), None),
+        (None, None)
+    ]
+)
+def test_censorship_facet(get_mock_resource, description, expected_value):
+    obj = Item(description=description) if description is not None else Item()
+
+    ctx = IndexerContext(
+        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
+        resource=get_mock_resource('/foo', obj),
+        model_class=obj.__class__,
+        doc={},
+        config={},
+    )
+
+    faceter = CensorshipFacet(ctx)
+    assert faceter.get_values() == expected_value

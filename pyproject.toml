@@ -1,19 +1,22 @@
 [project]
 name = "solrizer"
-version = "1.0.0-dev"
+version = "1.0.0"
 dependencies = [
     "beautifulsoup4",
     "edtf",
     "flask",
+    "jq",
     "langcodes",
-    "plastron-client",
-    "plastron-models",
-    "plastron-rdf",
-    "plastron-repo",
-    "plastron-utils",
+    "plastron-client>=4.4.0",
+    "plastron-models>=4.4.0",
+    "plastron-rdf>=4.4.0",
+    "plastron-repo>=4.4.0",
+    "plastron-utils>=4.4.0",
+    "pyyaml",
     "python-dotenv",
     "python-iso639",
     "python-jsonpath",
+    "pyyaml",
     # require rdflib 7.0.0+ in order to have access
     # to the NamespaceManager.curie() method
     "rdflib>=7.0.0",
@@ -48,12 +51,16 @@ dates = "solrizer.indexers.dates:date_fields"
 facets = "solrizer.indexers.facets:facet_fields"
 extracted_text = "solrizer.indexers.extracted_text:extracted_text_fields"
 root = "solrizer.indexers.root:root_field"
+handles = "solrizer.indexers.handles:handle_fields"
+aggregate_fields = "solrizer.indexers.aggregate_fields:aggregate_fields"
 
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"
 archival_collection = "solrizer.faceters:ArchivalCollectionFacet"
+censorship = "solrizer.faceters:CensorshipFacet"
 contributor = "solrizer.faceters:ContributorFacet"
 creator = "solrizer.faceters:CreatorFacet"
+has_ocr = "solrizer.faceters:OCRFacet"
 language = "solrizer.faceters:LanguageFacet"
 location = "solrizer.faceters:LocationFacet"
 presentation_set = "solrizer.faceters:PresentationSetFacet"
@@ -66,8 +73,14 @@ subject = "solrizer.faceters:SubjectFacet"
 visibility = "solrizer.faceters:VisibilityFacet"
 
 [tool.pytest.ini_options]
-# the datetime.datetime.utcnow() warning is coming from the httpretty code
-filterwarnings = 'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning'
+# these warnings are coming from third-party code
+filterwarnings = [
+    'ignore:datetime.datetime.utcnow\(\) is deprecated:DeprecationWarning',
+    'ignore:ConjunctiveGraph is deprecated:DeprecationWarning',
+    "ignore:The 'strip_cdata' option:DeprecationWarning",
+    "ignore:distutils Version classes are deprecated:DeprecationWarning",
+]
+addopts = "--doctest-modules"
 
 [tool.ruff]
 line-length = 120

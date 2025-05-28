@@ -7,20 +7,23 @@ Prerequisites: Must run **after** the [`content_model`](./content_model) indexer
 
 Output field patterns:
 
-| Field pattern                                      | Python Type | Solr Type      |
-|----------------------------------------------------|-------------|----------------|
-| `{model}__{attr}__dt`                              | `str`       | datetime range |
-| `{model}__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
-| `{model}__{attr}__dt_is_approximate`               | `bool`      | boolean        |
-| `{model}__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
+| Field pattern                                     | Python Type | Solr Type      |
+|---------------------------------------------------|-------------|----------------|
+| `object__{attr}__dt`                              | `str`       | datetime range |
+| `object__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
+| `object__{attr}__dt_is_approximate`               | `bool`      | boolean        |
+| `object__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
 """
 
 import logging
+from datetime import datetime
 
-from edtf import parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, UncertainOrApproximate, Interval, Season, \
-    Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime
+from edtf import (parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, UncertainOrApproximate, Interval,
+                  Level2Interval, Season, Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime,
+                  PartialUncertainOrApproximate)
 
 from solrizer.indexers import IndexerContext, SolrFields
+from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +73,7 @@ def strict_range(edtf: Date) -> str:
     return f'[{begin} TO {end}]'
 
 
-def solr_date(edtf_value: str | EDTFObject) -> str:
+def solr_date(edtf_value: str | EDTFObject, partial_ua_method: str = 'lower_strict') -> str:
     """Convert an EDTF string (or an already parsed `EDTFObject`) into
     a date or date range string valid for Solr.
 
@@ -100,14 +103,23 @@ def solr_date(edtf_value: str | EDTFObject) -> str:
             return strict_range(edtf)
         case UnspecifiedIntervalSection():
             return '*'
+        case Level2Interval():
+            lower = edtf.lower
+            upper = edtf.upper
+            return f'[{solr_date(lower, 'lower_strict')} TO {solr_date(upper, 'upper_strict')}]'
         case Interval():
             lower = edtf.lower
             upper = edtf.upper
             return f'[{solr_date(lower)} TO {solr_date(upper)}]'
         case UncertainOrApproximate():
             return str(edtf.date)
-        case Date() | DateAndTime():
+        case PartialUncertainOrApproximate():
+            time_data = getattr(edtf, partial_ua_method)()
+            return str(datetime(*time_data[:7]).date())
+        case Date():
             return str(edtf)
+        case DateAndTime():
+            return solr_datetime(str(edtf))
 
 
 class UnsupportedEDTFValue(ValueError):
