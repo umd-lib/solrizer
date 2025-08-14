@@ -59,10 +59,12 @@ Python data structures that are deserialized from them. See the
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from time import strftime
 from typing import MutableMapping
 
+import psutil
 import yaml
 from flask import Flask, request
 from plastron.client import Client, Endpoint
@@ -152,6 +154,7 @@ def load_config_from_files(config: MutableMapping):
 
 
 def create_app():
+    start_time = datetime.now()
     app = Flask(__name__)
     app.config.from_prefixed_env('SOLRIZER')
     load_config_from_files(app.config)
@@ -194,7 +197,20 @@ def create_app():
 
     @app.route('/health')
     def get_health():
-        return {'status': 'ok'}
+        uptime = datetime.now() - start_time
+        memory = psutil.virtual_memory()
+        status = {
+            'status': 'ok',
+            'uptime': str(uptime),
+            'memory': {
+                'total': memory.total,
+                'available': memory.available,
+                'used': memory.used,
+                'used_percent': memory.percent,
+            },
+        }
+        logger.info(f'Health: {status}')
+        return status
 
     @app.route('/doc')
     def get_doc():
