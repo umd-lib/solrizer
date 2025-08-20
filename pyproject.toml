@@ -54,6 +54,7 @@ extracted_text = "solrizer.indexers.extracted_text:extracted_text_fields"
 root = "solrizer.indexers.root:root_field"
 handles = "solrizer.indexers.handles:handle_fields"
 aggregate_fields = "solrizer.indexers.aggregate_fields:aggregate_fields"
+described_by = "solrizer.indexers.described_by:described_by_field"
 
 [project.entry-points.solrizer_faceters]
 admin_set = "solrizer.faceters:AdminSetFacet"
