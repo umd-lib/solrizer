@@ -10,6 +10,7 @@ Output fields:
 | Field                       | Python Type | Solr Type |
 |-----------------------------|-------------|-----------|
 | `content_model_name__str`   | `str`       | string    |
+| `described_by__uri`         | `str`       | string    |
 
 Output field patterns:
 
@@ -46,6 +47,7 @@ from plastron.rdfmapping.resources import RDFResource, RDFResourceBase
 from plastron.repo import Repository
 from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import Literal, URIRef
+from urlobject import URLObject
 
 from solrizer.indexers import SolrFields, IndexerContext, IndexerError
 from solrizer.indexers.utils import solr_datetime
@@ -93,8 +95,11 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
-    names to values. If `obj` is an instance of `plastron.models.ContentModeledResource`,
-    include a `content_model_name__str` field in the results."""
+    names to values. Adds a `described_by__uri` field containing the "described by" URL for the
+    resource at `obj.uri`. For Non-RDF Source resources in Fedora, this will be the resource URI
+    followed by the string "/fcr:metadata". For RDF Source resources, this will be the resource
+    URI itself. If `obj` is an instance of `plastron.models.ContentModeledResource`, include a
+    `content_model_name__str` field in the results."""
     logger.info(f'Converting {obj.uri}')
 
     if isinstance(obj, ContentModeledResource):
@@ -105,6 +110,12 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
     else:
         model_name = None
         fields = {}
+
+    # get the "described by" value for non-fragment resources that are within the repository
+    url = URLObject(obj.uri)
+    if url in repo.endpoint and not url.fragment:
+        resource = repo[url].read()
+        fields.update(described_by__uri=str(resource.description_url or resource.url))
 
     for prop in obj.rdf_properties():
         if len(prop) == 0:
