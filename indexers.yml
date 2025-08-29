@@ -1,6 +1,5 @@
 Item:
   - content_model
-  - described_by
   - discoverability
   - page_sequence
   - iiif_links
@@ -11,7 +10,6 @@ Item:
   - extracted_text
 Issue:
   - content_model
-  - described_by
   - discoverability
   - page_sequence
   - iiif_links
@@ -22,11 +20,9 @@ Issue:
   - extracted_text
 Page:
   - content_model
-  - described_by
   - root
 File:
   - content_model
-  - described_by
   - root
 AdminSet:
   - content_model
