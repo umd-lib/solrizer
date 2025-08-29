@@ -160,7 +160,7 @@ def test_object_property_from_vocabulary(datadir: Path):
         values_from=UMD_ARCHIVAL_COLLECTIONS,
     )
     prop.add(URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'))
-    repo = MagicMock(spec=Repository)
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     fields = get_object_fields(prop, repo)
     assert fields['archival_collection__uri'] == 'http://vocab.lib.umd.edu/collection#0051-MDHC'
     assert fields['archival_collection__curie'] == 'http://vocab.lib.umd.edu/collection#0051-MDHC'
@@ -188,14 +188,13 @@ def test_object_property_embedded():
             label=Literal('Test'),
         )
     )
-    repo = MagicMock(spec=Repository)
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     repo.__getitem__.return_value = repo_resource
     repo_resource.read.return_value = repo_resource
 
     fields = get_object_fields(prop, repo)
     assert fields['subject'] == [{
         'id': 'http://example.com/fcrepo/foo#subject',
-        'described_by__uri': 'http://example.com/fcrepo/foo',
         'subject__label__txt': 'Test',
         'subject__label__display': ['Test'],
     }]
@@ -288,12 +287,12 @@ def test_object_property_linked():
     ],
 )
 def test_get_model_fields(obj, prefix, expected_fields):
-    repo = MagicMock(spec=Repository)
     repo_resource = MagicMock(
         spec=RepositoryResource,
         url=obj.uri,
         description_url=f'{obj.uri}/fcr:metadata' if isinstance(obj, File) else None,
     )
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     repo.__getitem__.return_value = repo_resource
     repo_resource.read.return_value = repo_resource
     fields = get_model_fields(obj, repo, prefix=prefix)
@@ -302,6 +301,10 @@ def test_get_model_fields(obj, prefix, expected_fields):
             assert set(v) == set(expected_fields[k])
         else:
             assert v == expected_fields[k]
+
+
+class TestingResource(ContentModeledResource):
+    model_name = 'TestingResource'
 
 
 @pytest.mark.parametrize(
@@ -325,13 +328,14 @@ def test_described_by(url, description_url, expected_value):
     mock_resource = MagicMock(spec=RepositoryResource)
     mock_resource.url = url
     mock_resource.description_url = description_url
-    repo = MagicMock(spec=Repository)
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     repo.__getitem__.return_value = mock_resource
     mock_resource.read.return_value = mock_resource
+    mock_resource.describe.return_value = TestingResource(uri='http://example.com/fcrepo')
     context = IndexerContext(
         repo=repo,
         resource=mock_resource,
-        model_class=ContentModeledResource,
+        model_class=TestingResource,
         doc={'id': 'foo'},
         config={},
     )
