@@ -38,6 +38,7 @@ Output field patterns:
 
 import logging
 from collections.abc import Iterator, Iterable, Callable
+from typing import NamedTuple
 
 from langcodes import standardize_tag, LanguageTagError
 from plastron.models import ContentModeledResource
@@ -53,6 +54,39 @@ from solrizer.indexers import SolrFields, IndexerContext, IndexerError
 from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
+
+
+class Suffix(NamedTuple):
+    """Encapsulates a suffix that encodes the field type, plurality (i.e., is it
+    a multivalued field or not), and language tag. Stringifies to the `base` value,
+    plus "s" if `plural`, plus the `lang` value.
+
+    ```pycon
+    >>> str(Suffix('__str'))
+    '__str'
+
+    >>> str(Suffix('__str', plural=True))
+    '__strs'
+
+    >>> str(Suffix('__txt', lang='_de'))
+    '__txt_de'
+
+    >>> str(Suffix('__txt', plural=True, lang='_de'))
+    '__txts_de'
+
+    ```
+    """
+
+    base: str
+    """Base suffix part. Should begin with a separator like "__"."""
+    plural: bool = False
+    """Whether this field is multivalued."""
+    lang: str = ''
+    """Optional language tag. Should begin with a separator like "_"."""
+
+    def __str__(self):
+        return self.base + ('s' if self.plural else '') + self.lang
+
 
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
@@ -215,7 +249,7 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
                 fields.update(get_field(
                     prop=prop,
                     prefix=prefix,
-                    suffix='__txt' + language_suffix(language),
+                    suffix=Suffix('__txt', plural=prop.repeatable, lang=language_suffix(language)),
                     value_filter=lambda v: v.language == language,
                 ))
             # add a `__display` field that contains all the values, with embedded language tags
@@ -272,7 +306,7 @@ def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '
 def get_field(
     prop: RDFProperty,
     prefix: str = '',
-    suffix: str = '__str',
+    suffix: Suffix | str = '__str',
     converter: Callable[[Literal | URIRef], str | int] = str,
     value_filter: Callable[[Literal | URIRef], bool] = lambda v: True,
 ) -> SolrFields:
@@ -283,10 +317,14 @@ def get_field(
 
     If `converter` is given, it is applied to the included values. Should
     return a `str` or `int`. Default is `str()`."""
-    name = prefix + prop.attr_name + suffix
+
+    if isinstance(suffix, str):
+        suffix = Suffix(suffix, plural=prop.repeatable)
+
+    name = prefix + prop.attr_name + str(suffix)
     values = [converter(v) for v in prop.values if value_filter(v)]
     if prop.repeatable:
-        return {name + 's': values}
+        return {name: values}
     else:
         return {name: values[0]}
 

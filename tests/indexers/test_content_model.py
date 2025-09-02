@@ -91,6 +91,18 @@ def test_invalid_language_suffix():
             },
         ),
         ('value', None, True, ['a', 'b', 'c'], {'value__txts': ['a', 'b', 'c'], 'value__display': ['a', 'b', 'c']}),
+        (
+            'value',
+            None,
+            True,
+            [Literal('dog'), Literal('dog', lang='en'), Literal('der Hund', lang='de')],
+            {
+                'value__txts': ['dog'],
+                'value__txts_en': ['dog'],
+                'value__txts_de': ['der Hund'],
+                'value__display': ['dog', '[@en]dog', '[@de]der Hund'],
+            },
+        ),
     ],
 )
 def test_get_data_properties(attr_name, datatype, repeatable, values, expected_fields):
