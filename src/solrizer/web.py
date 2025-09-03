@@ -29,10 +29,25 @@ Configuration of the application is handled by a combination of
   indexers to use for each content model.
 * **`SOLRIZER_INDEXER_SETTINGS_FILE`** Name of the file that
   contains indexer-specific configuration.
+* **`SOLRIZER_SOLR_QUERY_ENDPOINT`** URL of the Solr service to query for
+  the current document for a given item. This is required to generate the
+  atomic updates for `?command=update` query parameter. See also the
+  `solrizer.solr.create_atomic_update` function.
 
 During development, it is also useful to set `FLASK_DEBUG=1` to enable
 Flask's debug mode, which includes detailed error pages and hot reloading
 when the source code is updated.
+
+Once the above `SOLRIZER_*` environment variables are loaded, they are available
+from the Flask app's `config` object without the `SOLRIZER_` prefix.
+
+```
+# in a .env file:
+SOLRIZER_FCREPO_ENDPOINT=http://localhost:8080/fcrepo/rest
+
+# in Python code:
+app.config['FCREPO_ENDPOINT']  # 'http://localhost:8080/fcrepo/rest'
+```
 
 ### Files
 
@@ -84,6 +99,7 @@ from solrizer.errors import (
     problem_detail_response,
 )
 from solrizer.indexers import IndexerContext, IndexerError
+from solrizer.solr import create_atomic_update
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -187,7 +203,13 @@ def create_app():
           <body>
             <h1>Solrizer</h1>
             <form method="get" action="/doc">
-              <label>URI: <input name="uri" type="text" size="80"/></label><button type="submit">Submit</button>
+              <label>URI: <input name="uri" type="text" size="80"/></label>
+              <select name="command">
+                <option value=""></option>
+                <option value="add">add</option>
+                <option value="update">update</option>
+              </select>
+              <button type="submit">Submit</button>
             </form>
             <hr/>
             <p id="version">{__version__}</p>
@@ -220,7 +242,7 @@ def create_app():
             raise NoResourceRequested()
 
         command = request.args.get('command', None)
-        if command not in ('add', 'update', None):
+        if command not in ('add', 'update', '', None):
             raise UnknownCommand(value=command)
 
         try:
@@ -262,15 +284,13 @@ def create_app():
                 # wrap in an add command
                 doc = {"add": {"doc": doc}}
             case 'update':
-                # transform into an atomic update
-                atomic_update = {}
-                for k, v in doc.items():
-                    if k in ('_root_', 'id'):
-                        atomic_update[k] = v
-                    else:
-                        atomic_update[k] = {'set': v}
-                doc = [atomic_update]
-            case None:
+                # create an atomic update by comparing the newly generated document to
+                # the existing document in Solr for the given item
+                try:
+                    doc = [create_atomic_update(doc, app.config['SOLR_QUERY_ENDPOINT'])]
+                except KeyError as e:
+                    raise InternalServerError('Cannot generate Solr atomic update') from e
+            case None, '':
                 # just the plain document
                 pass
 
