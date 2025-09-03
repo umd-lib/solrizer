@@ -101,8 +101,15 @@ def test_doc_with_update_command(datadir, client, repo, register_uri_for_reading
     register_uri_for_reading(
         uri='http://solr.example.com/fcrepo/select',
         content_type='application/json',
-        body=json.dumps({'response': {'docs': [{
-            'id': 'http://example.com/fcrepo/foo', 'object__title__txt_de': 'der Hund', 'object__title__txt': 'Moonpig'}]}}),
+        body=json.dumps({
+            'response': {
+                'docs': [{
+                    'id': 'http://example.com/fcrepo/foo',
+                    'object__title__txt_de': 'der Hund',
+                    'object__title__txt': 'Moonpig',
+                }],
+            },
+        }),
     )
     client.application.config['repo'] = repo
     client.application.config['SOLR_QUERY_ENDPOINT'] = 'http://solr.example.com/fcrepo/select'
