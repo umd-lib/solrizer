@@ -5,13 +5,14 @@ from uuid import uuid4
 import plastron.models.authorities
 import plastron.validation.vocabularies
 import pytest
+from httpretty import httpretty
 from plastron.client import Endpoint
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
 from plastron.repo.pcdm import PCDMObjectResource, ProxyIterator
 from rdflib import Graph, URIRef
 
-from solrizer.indexers import SolrFields, IndexerContext
+from solrizer.indexers import SolrFields
 from solrizer.web import create_app
 
 
@@ -101,3 +102,20 @@ def get_mock_resource():
         mock_resource.describe.return_value = obj
         return mock_resource
     return _mock_resource
+
+
+@pytest.fixture
+def register_uri_for_reading():
+    def _register_uri_for_reading(uri: str, content_type: str, body: str):
+        httpretty.register_uri(
+            method=httpretty.HEAD,
+            uri=uri,
+            adding_headers={'Content-Type': content_type},
+        )
+        httpretty.register_uri(
+            method=httpretty.GET,
+            uri=uri,
+            body=body,
+            adding_headers={'Content-Type': content_type},
+        )
+    return _register_uri_for_reading

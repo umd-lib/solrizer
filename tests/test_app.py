@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -37,22 +38,8 @@ def test_doc_repository_error(app, client):
     assert detail['details'] == 'Resource at "http://example.com/fcrepo/foo" is not available from the repository.'
 
 
-def register_uri_for_reading(uri: str, content_type: str, body: str):
-    httpretty.register_uri(
-        method=httpretty.HEAD,
-        uri=uri,
-        adding_headers={'Content-Type': content_type},
-    )
-    httpretty.register_uri(
-        method=httpretty.GET,
-        uri=uri,
-        body=body,
-        adding_headers={'Content-Type': content_type},
-    )
-
-
 @httpretty.activate()
-def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
+def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path, register_uri_for_reading):
     monkeypatch.setitem(client.application.config, "INDEXERS", {'__default__': ['content_model']})
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
@@ -69,7 +56,7 @@ def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path):
 
 
 @httpretty.activate()
-def test_doc_no_content_model(client, repo):
+def test_doc_no_content_model(client, repo, register_uri_for_reading):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
@@ -86,7 +73,7 @@ def test_doc_no_content_model(client, repo):
 
 
 @httpretty.activate()
-def test_doc_with_add_command(datadir, client, repo):
+def test_doc_with_add_command(datadir, client, repo, register_uri_for_reading):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
@@ -105,13 +92,27 @@ def test_doc_with_add_command(datadir, client, repo):
 
 
 @httpretty.activate()
-def test_doc_with_update_command(datadir, client, repo):
+def test_doc_with_update_command(datadir, client, repo, register_uri_for_reading):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
+    register_uri_for_reading(
+        uri='http://solr.example.com/fcrepo/select',
+        content_type='application/json',
+        body=json.dumps({
+            'response': {
+                'docs': [{
+                    'id': 'http://example.com/fcrepo/foo',
+                    'object__title__txt_de': 'der Hund',
+                    'object__title__txt': 'Moonpig',
+                }],
+            },
+        }),
+    )
     client.application.config['repo'] = repo
+    client.application.config['SOLR_QUERY_ENDPOINT'] = 'http://solr.example.com/fcrepo/select'
     response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=update')
     assert response.status_code == 200
     assert response.mimetype == 'application/json'
@@ -123,7 +124,37 @@ def test_doc_with_update_command(datadir, client, repo):
 
 
 @httpretty.activate()
-def test_doc_with_unknown_command(datadir, client, repo):
+def test_doc_with_update_command_no_solr_endpoint(datadir, client, repo, register_uri_for_reading):
+    register_uri_for_reading(
+        uri='http://example.com/fcrepo/foo',
+        content_type='application/n-triples',
+        body=(datadir / 'item.nt').read_text(),
+    )
+    register_uri_for_reading(
+        uri='http://solr.example.com/fcrepo/select',
+        content_type='application/json',
+        body=json.dumps({
+            'response': {
+                'docs': [{
+                    'id': 'http://example.com/fcrepo/foo',
+                    'object__title__txt_de': 'der Hund',
+                    'object__title__txt': 'Moonpig',
+                }],
+            },
+        }),
+    )
+    client.application.config['repo'] = repo
+    response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=update')
+    assert response.status_code == 500
+    assert response.mimetype == 'application/problem+json'
+    detail = response.json
+    assert detail['status'] == 500
+    assert detail['title'] == 'Configuration error'
+    assert detail['details'] == 'The server is incorrectly configured.'
+
+
+@httpretty.activate()
+def test_doc_with_unknown_command(datadir, client, repo, register_uri_for_reading):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
