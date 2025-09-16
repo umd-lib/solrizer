@@ -96,7 +96,7 @@ from solrizer.errors import (
     ProblemDetailError,
     ResourceNotAvailable,
     UnknownCommand,
-    problem_detail_response,
+    problem_detail_response, ConfigurationError,
 )
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
@@ -244,6 +244,9 @@ def create_app():
         command = request.args.get('command', None)
         if command not in ('add', 'update', '', None):
             raise UnknownCommand(value=command)
+        if command == 'update' and 'SOLR_QUERY_ENDPOINT' not in app.config:
+            app.logger.error('The "update" command requires SOLRIZER_SOLR_QUERY_ENDPOINT to be set')
+            raise ConfigurationError()
 
         try:
             resource: RepositoryResource = app.config['repo'][uri].read()

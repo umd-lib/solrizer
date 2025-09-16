@@ -124,6 +124,36 @@ def test_doc_with_update_command(datadir, client, repo, register_uri_for_reading
 
 
 @httpretty.activate()
+def test_doc_with_update_command_no_solr_endpoint(datadir, client, repo, register_uri_for_reading):
+    register_uri_for_reading(
+        uri='http://example.com/fcrepo/foo',
+        content_type='application/n-triples',
+        body=(datadir / 'item.nt').read_text(),
+    )
+    register_uri_for_reading(
+        uri='http://solr.example.com/fcrepo/select',
+        content_type='application/json',
+        body=json.dumps({
+            'response': {
+                'docs': [{
+                    'id': 'http://example.com/fcrepo/foo',
+                    'object__title__txt_de': 'der Hund',
+                    'object__title__txt': 'Moonpig',
+                }],
+            },
+        }),
+    )
+    client.application.config['repo'] = repo
+    response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=update')
+    assert response.status_code == 500
+    assert response.mimetype == 'application/problem+json'
+    detail = response.json
+    assert detail['status'] == 500
+    assert detail['title'] == 'Configuration error'
+    assert detail['details'] == 'The server is incorrectly configured.'
+
+
+@httpretty.activate()
 def test_doc_with_unknown_command(datadir, client, repo, register_uri_for_reading):
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
