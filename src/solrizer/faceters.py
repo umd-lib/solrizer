@@ -39,7 +39,9 @@ import logging
 from collections.abc import Callable
 
 from iso639 import Language, LanguageNotFoundError
+from plastron.models.authorities import UMD_FORMATS
 from plastron.models.letter import Letter
+from plastron.models.newspaper import Issue
 from plastron.models.poster import Poster
 from plastron.models.umd import AdminSet, Item
 from plastron.namespaces import owl, pcdmuse, rdfs, umdaccess
@@ -129,10 +131,10 @@ class AdminSetFacet(FacetBase):
 class ArchivalCollectionFacet(FacetBase):
     """Archival collection facet.
 
-    For `Item` objects, uses the `label` properties of the objects of the `archival_collection`
-    property. For `Letter` objects, uses the `label` properties of the objects of the
-    `part_of` property instead. For `Poster` objects, uses the direct values of the
-    `part_of` property."""
+    For `Item` objects, uses the `label` properties of the objects of the
+    `archival_collection` property. For `Letter` objects, uses the `label` properties
+    of the objects of the `part_of` property instead. For `Poster` objects, uses the
+    direct values of the `part_of` property."""
 
     facet_name = 'archival_collection'
 
@@ -344,7 +346,9 @@ class ResourceTypeFacet(FacetBase):
     property. For `Letter` objects, uses the direct values of the `type` property.
     For `Poster` objects, uses the direct value of the `format` property, up to
     the first comma (in the Poster content descriptions, the `format` property
-    contains both a genre/format description and physical extent information)."""
+    contains both a genre/format description and physical extent information). For
+    `Issue` objects, always uses the `label` properties of the vocabulary term
+    <http://vocab.lib.umd.edu/format#newspapers>."""
 
     facet_name = 'resource_type'
 
@@ -356,6 +360,8 @@ class ResourceTypeFacet(FacetBase):
                 return get_data_values(self.ctx.obj.type)
             case Poster():
                 return get_data_values(self.ctx.obj.format, lambda v: v.split(',')[0])
+            case Issue():
+                return [str(UMD_FORMATS['newspapers'][rdfs.label])]
             case _:
                 return None
 
@@ -363,16 +369,16 @@ class ResourceTypeFacet(FacetBase):
 class RightsFacet(FacetBase):
     """Rights facet.
 
-    For `Item` objects, uses the `label` properties of the objects of the `rights`
-    property. For `Letter` and `Poster` objects, correlates the direct values (URIs
-    from rightsstatements.org) with labels from the UMD Libraries Rights Statements
+    For `Item` and `Issue` objects, uses the `label` properties of the objects of the
+    `rights` property. For `Letter` and `Poster` objects, correlates the direct values
+    (URIs from rightsstatements.org) with labels from the UMD Libraries Rights Statements
     vocabulary."""
 
     facet_name = 'rights'
 
     def get_values(self) -> list[str] | None:
         match self.ctx.obj:
-            case Item():
+            case Item() | Issue():
                 return get_labels(self.ctx.obj.rights)
             case Letter() | Poster():
                 return get_data_values(self.ctx.obj.rights, rights_statement_label)
