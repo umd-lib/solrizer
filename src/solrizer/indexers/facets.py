@@ -39,7 +39,7 @@ def facet_fields(ctx: IndexerContext) -> SolrFields:
     fields = {}
 
     available_faceters = importlib.metadata.entry_points(group='solrizer_faceters')
-    logger.info(f'Available faceters: {available_faceters}')
+    logger.info(f'Available faceters: {", ".join(f.name for f in available_faceters)}')
 
     for faceter in (f.load() for f in available_faceters):
         logger.info(f'Running faceter "{faceter.__name__}"')
