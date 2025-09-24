@@ -9,6 +9,7 @@ from plastron.models.authorities import Subject, UMD_ARCHIVAL_COLLECTIONS
 from plastron.models.page import File
 from plastron.models.umd import Item
 from plastron.namespaces import umdtype, rdf, xsd, dcterms, owl
+from plastron.rdfmapping.descriptors import DataProperty
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
@@ -23,6 +24,7 @@ from solrizer.indexers.content_model import (
     get_object_fields,
     language_suffix,
     content_model_fields,
+    get_display_values,
 )
 
 
@@ -353,3 +355,71 @@ def test_described_by(url, description_url, expected_value):
     )
     fields = content_model_fields(context)
     assert fields['described_by__uri'] == expected_value
+
+
+@pytest.mark.parametrize(
+    ('values', 'preferred_language', 'expected_value'),
+    [
+        ([Literal('b'), Literal('c'), Literal('a')], None, ['a', 'b', 'c']),
+        # case insensitive for values
+        ([Literal('B'), Literal('C'), Literal('a')], None, ['a', 'B', 'C']),
+        # sort language tags first
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            None,
+            ['[@de]b', '[@ja]a', 'c'],
+        ),
+        # preferred language listed first
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'ja',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        # language tags are normalized
+        (
+            [Literal('b', lang='en'), Literal('c', lang='EN'), Literal('a')],
+            None,
+            ['[@en]b', '[@en]c', 'a'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'JA',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'jpn',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='af')],
+            'ger',
+            ['[@de]b', '[@af]a', 'c'],
+        ),
+    ]
+)
+def test_get_display_values(values, preferred_language, expected_value):
+    assert get_display_values(values, preferred_language) == expected_value
+
+
+class SimpleModel(ContentModeledResource):
+    model_name = 'SimpleModel'
+
+    title = DataProperty(dcterms.title)
+    language = DataProperty(dcterms.language)
+
+
+def test_get_model_fields_display_value_with_resource_language():
+    mock_repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo/rest'))
+    # "@en" sorts first (ahead of "@de") since it is the language of the resource
+    obj = SimpleModel(language=Literal('en'), title=[Literal('Hund', lang='de'), Literal('Dog', 'en')])
+    fields = get_model_fields(obj, mock_repo)
+    assert fields['title__display'] == ['[@en]Dog', '[@de]Hund']
+
+
+def test_get_model_fields_display_value_without_resource_language():
+    mock_repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo/rest'))
+    # "@de" sorts before "@en" since there is no resource language
+    obj = SimpleModel(title=[Literal('Hund', lang='de'), Literal('Dog', 'en')])
+    fields = get_model_fields(obj, mock_repo)
+    assert fields['title__display'] == ['[@de]Hund', '[@en]Dog']
