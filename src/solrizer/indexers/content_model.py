@@ -161,11 +161,18 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
             logger.debug(f'Skipping property {prop.attr_name} of model {model_name}')
             continue
         if isinstance(prop, RDFDataProperty):
-            fields.update(get_data_fields(prop, prefix))
+            fields.update(get_data_fields(prop, prefix, get_resource_language(obj)))
         elif isinstance(prop, RDFObjectProperty):
             fields.update(get_object_fields(prop, repo, prefix))
 
     return fields
+
+
+def get_resource_language(obj: ContentModeledResource, prop_name: str = 'language') -> str | None:
+    if not hasattr(obj, prop_name):
+        return None
+    language = getattr(obj, prop_name).value
+    return str(language) if language is not None else None
 
 
 def get_linked_objects(prop: RDFObjectProperty, repo: Repository) -> Iterator[RDFResource]:
@@ -221,7 +228,7 @@ def language_suffix(language: str | None) -> str:
         return ''
 
 
-def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
+def get_data_fields(prop: RDFDataProperty, prefix: str = '', resource_language: str = None) -> SolrFields:
     """Get the dictionary of field key(s) and value(s) for the given data
     property using `get_field()`. All keys are prepended with the given
     `prefix`.
@@ -253,10 +260,26 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
                     value_filter=lambda v: v.language == language,
                 ))
             # add a `__display` field that contains all the values, with embedded language tags
-            fields.update({f'{prefix}{prop.attr_name}__display': [
-                embed_language_tag(v, '[@{tag}]{value}') for v in prop.values
-            ]})
+            fields.update({f'{prefix}{prop.attr_name}__display': get_display_values(prop.values, resource_language)})
             return fields
+
+
+def get_display_values(values: Iterable[Literal], preferred_language: str = None) -> list[str]:
+    """Transform an iterable collection of RDF literals to a list of strings
+    with embedded language tags (using `embed_language_tag`). These strings
+    are sorted by language tag, then value. Literals without a language tag
+    are sorted to the end. If a `preferred_language` is given, literals whose
+    language tags match the `preferred_language` tag are sorted to the beginning."""
+
+    def _by_language(value: Literal):
+        if value.language is None:
+            return f'3,{value.casefold()}'
+        elif preferred_language is not None and standardize_tag(value.language) == standardize_tag(preferred_language):
+            return f'1,{value.casefold()}'
+        else:
+            return f'2,{standardize_tag(value.language)},{value.casefold()}'
+
+    return [embed_language_tag(v, '[@{tag}]{value}') for v in sorted(values, key=_by_language)]
 
 
 def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '') -> SolrFields:
