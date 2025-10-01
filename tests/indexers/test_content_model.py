@@ -4,23 +4,27 @@ from unittest.mock import MagicMock
 import httpretty
 import pytest
 from plastron.client import Endpoint
+from plastron.models import ContentModeledResource
 from plastron.models.authorities import Subject, UMD_ARCHIVAL_COLLECTIONS
 from plastron.models.page import File
 from plastron.models.umd import Item
 from plastron.namespaces import umdtype, rdf, xsd, dcterms, owl
+from plastron.rdfmapping.descriptors import DataProperty
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
 from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import URIRef, Literal
 
-from solrizer.indexers import IndexerError
+from solrizer.indexers import IndexerError, IndexerContext
 from solrizer.indexers.content_model import (
     get_model_fields,
     get_data_fields,
     shorten_uri,
     get_object_fields,
     language_suffix,
+    content_model_fields,
+    get_display_values,
 )
 
 
@@ -89,6 +93,18 @@ def test_invalid_language_suffix():
             },
         ),
         ('value', None, True, ['a', 'b', 'c'], {'value__txts': ['a', 'b', 'c'], 'value__display': ['a', 'b', 'c']}),
+        (
+            'value',
+            None,
+            True,
+            [Literal('dog'), Literal('dog', lang='en'), Literal('der Hund', lang='de')],
+            {
+                'value__txts': ['dog'],
+                'value__txts_en': ['dog'],
+                'value__txts_de': ['der Hund'],
+                'value__display': ['dog', '[@en]dog', '[@de]der Hund'],
+            },
+        ),
     ],
 )
 def test_get_data_properties(attr_name, datatype, repeatable, values, expected_fields):
@@ -158,7 +174,7 @@ def test_object_property_from_vocabulary(datadir: Path):
         values_from=UMD_ARCHIVAL_COLLECTIONS,
     )
     prop.add(URIRef('http://vocab.lib.umd.edu/collection#0051-MDHC'))
-    repo = MagicMock(spec=Repository)
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     fields = get_object_fields(prop, repo)
     assert fields['archival_collection__uri'] == 'http://vocab.lib.umd.edu/collection#0051-MDHC'
     assert fields['archival_collection__curie'] == 'http://vocab.lib.umd.edu/collection#0051-MDHC'
@@ -167,6 +183,11 @@ def test_object_property_from_vocabulary(datadir: Path):
 
 
 def test_object_property_embedded():
+    repo_resource = MagicMock(
+        spec=RepositoryResource,
+        url='http://example.com/fcrepo/foo',
+        description_url=None,
+    )
     resource = RDFResource(uri='http://example.com/fcrepo/foo')
     prop = RDFObjectProperty(
         resource=resource,
@@ -181,7 +202,10 @@ def test_object_property_embedded():
             label=Literal('Test'),
         )
     )
-    repo = MagicMock(spec=Repository)
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
+    repo.__getitem__.return_value = repo_resource
+    repo_resource.read.return_value = repo_resource
+
     fields = get_object_fields(prop, repo)
     assert fields['subject'] == [{
         'id': 'http://example.com/fcrepo/foo#subject',
@@ -201,7 +225,11 @@ def test_object_property_linked():
     prop.add(URIRef('http://example.com/fcrepo/foo/bar'))
     repo = MagicMock(spec=Repository)
     repo.endpoint = Endpoint(url='http://example.com/fcrepo')
-    repo_resource = MagicMock(spec=RepositoryResource)
+    repo_resource = MagicMock(
+        spec=RepositoryResource,
+        url='http://example.com/fcrepo/foo/bar',
+        description_url=None,
+    )
     repo.__getitem__.return_value = repo_resource
     repo_resource.read.return_value = repo_resource
     repo_resource.describe.return_value = Subject(
@@ -211,6 +239,7 @@ def test_object_property_linked():
     fields = get_object_fields(prop, repo)
     assert fields['subject'] == [{
         'id': 'http://example.com/fcrepo/foo/bar',
+        'described_by__uri': 'http://example.com/fcrepo/foo/bar',
         'subject__label__txt': 'Bar',
         'subject__label__display': ['Bar'],
     }]
@@ -221,6 +250,7 @@ def test_object_property_linked():
     [
         (
             Item(
+                uri='http://example.com/fcrepo/rest/item',
                 title=Literal('Test Object'),
                 handle=Literal('hdl:1903.1/123', datatype=umdtype.handle),
                 accession_number=Literal('123', datatype=umdtype.accessionNumber),
@@ -233,6 +263,7 @@ def test_object_property_linked():
             'object__',
             {
                 'content_model_name__str': 'Item',
+                'described_by__uri': 'http://example.com/fcrepo/rest/item',
                 'object__rdf_type__uris': ['http://vocab.lib.umd.edu/model#Item', 'http://pcdm.org/models#Object'],
                 'object__rdf_type__curies': ['umd:Item', 'pcdm:Object'],
                 'object__title__txt': 'Test Object',
@@ -253,12 +284,14 @@ def test_object_property_linked():
         ),
         (
             File(
+                uri='http://example.com/fcrepo/rest/file',
                 filename=Literal('0001.tif'),
                 mime_type=Literal('image/tiff'),
             ),
             'file__',
             {
                 'content_model_name__str': 'File',
+                'described_by__uri': 'http://example.com/fcrepo/rest/file/fcr:metadata',
                 'file__rdf_type__uris': ['http://pcdm.org/models#File'],
                 'file__rdf_type__curies': ['pcdm:File'],
                 'file__filename__str': '0001.tif',
@@ -268,10 +301,125 @@ def test_object_property_linked():
     ],
 )
 def test_get_model_fields(obj, prefix, expected_fields):
-    repo = MagicMock(spec=Repository)
+    repo_resource = MagicMock(
+        spec=RepositoryResource,
+        url=obj.uri,
+        description_url=f'{obj.uri}/fcr:metadata' if isinstance(obj, File) else None,
+    )
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
+    repo.__getitem__.return_value = repo_resource
+    repo_resource.read.return_value = repo_resource
     fields = get_model_fields(obj, repo, prefix=prefix)
     for k, v in fields.items():
         if isinstance(v, list):
             assert set(v) == set(expected_fields[k])
         else:
             assert v == expected_fields[k]
+
+
+class TestingResource(ContentModeledResource):
+    model_name = 'TestingResource'
+
+
+@pytest.mark.parametrize(
+    ('url', 'description_url', 'expected_value'),
+    [
+        (
+            'http://example.com/fcrepo/rest/123',
+            'http://example.com/fcrepo/rest/123/fcr:metadata',
+            'http://example.com/fcrepo/rest/123/fcr:metadata',
+        ),
+        # when the `description_url` is None (i.e., this is an RDF source),
+        # should fall back to using the plain `url` for the `described_by__uri` field
+        (
+            'http://example.com/fcrepo/rest/123',
+            None,
+            'http://example.com/fcrepo/rest/123',
+        ),
+    ]
+)
+def test_described_by(url, description_url, expected_value):
+    mock_resource = MagicMock(spec=RepositoryResource)
+    mock_resource.url = url
+    mock_resource.description_url = description_url
+    repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
+    repo.__getitem__.return_value = mock_resource
+    mock_resource.read.return_value = mock_resource
+    mock_resource.describe.return_value = TestingResource(uri='http://example.com/fcrepo')
+    context = IndexerContext(
+        repo=repo,
+        resource=mock_resource,
+        model_class=TestingResource,
+        doc={'id': 'foo'},
+        config={},
+    )
+    fields = content_model_fields(context)
+    assert fields['described_by__uri'] == expected_value
+
+
+@pytest.mark.parametrize(
+    ('values', 'preferred_language', 'expected_value'),
+    [
+        ([Literal('b'), Literal('c'), Literal('a')], None, ['a', 'b', 'c']),
+        # case insensitive for values
+        ([Literal('B'), Literal('C'), Literal('a')], None, ['a', 'B', 'C']),
+        # sort language tags first
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            None,
+            ['[@de]b', '[@ja]a', 'c'],
+        ),
+        # preferred language listed first
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'ja',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        # language tags are normalized
+        (
+            [Literal('b', lang='en'), Literal('c', lang='EN'), Literal('a')],
+            None,
+            ['[@en]b', '[@en]c', 'a'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'JA',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='ja')],
+            'jpn',
+            ['[@ja]a', '[@de]b', 'c'],
+        ),
+        (
+            [Literal('b', lang='de'), Literal('c'), Literal('a', lang='af')],
+            'ger',
+            ['[@de]b', '[@af]a', 'c'],
+        ),
+    ]
+)
+def test_get_display_values(values, preferred_language, expected_value):
+    assert get_display_values(values, preferred_language) == expected_value
+
+
+class SimpleModel(ContentModeledResource):
+    model_name = 'SimpleModel'
+
+    title = DataProperty(dcterms.title)
+    language = DataProperty(dcterms.language)
+
+
+def test_get_model_fields_display_value_with_resource_language():
+    mock_repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo/rest'))
+    # "@en" sorts first (ahead of "@de") since it is the language of the resource
+    obj = SimpleModel(language=Literal('en'), title=[Literal('Hund', lang='de'), Literal('Dog', 'en')])
+    fields = get_model_fields(obj, mock_repo)
+    assert fields['title__display'] == ['[@en]Dog', '[@de]Hund']
+
+
+def test_get_model_fields_display_value_without_resource_language():
+    mock_repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo/rest'))
+    # "@de" sorts before "@en" since there is no resource language
+    obj = SimpleModel(title=[Literal('Hund', lang='de'), Literal('Dog', 'en')])
+    fields = get_model_fields(obj, mock_repo)
+    assert fields['title__display'] == ['[@de]Hund', '[@en]Dog']

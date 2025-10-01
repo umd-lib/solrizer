@@ -18,8 +18,9 @@ source .venv/bin/activate
 ```
 
 Currently (2025-05-06), Solrizer requires a patched version of the 
-[python-edtf] module to correctly handle certain Level 2 [EDTF] date 
-ranges, and it should be installed before the other dependencies. 
+[python-edtf](https://pypi.org/project/edtf/) module to correctly 
+handle certain Level 2 [EDTF](https://www.loc.gov/standards/datetime/)
+date ranges, and it should be installed before the other dependencies. 
 
 ```zsh
 pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
@@ -40,6 +41,7 @@ SOLRIZER_IIIF_THUMBNAIL_URL_PATTERN={URI template for IIIF thumbnail images}
 SOLRIZER_INDEXERS_FILE=indexers.yml
 SOLRIZER_INDEXER_SETTINGS_FILE=indexer-settings.yml
 SOLRIZER_HANDLE_PROXY_PREFIX={URL of handle proxy server}
+SOLRIZER_SOLR_QUERY_ENDPOINT={URL of Solr query service}
 ```
 
 In the IIIF URI templates, use `{+id}` as the placeholder for the IIIF 
@@ -100,7 +102,3 @@ docker run --rm -it -p 5000:5000 --env-file .env docker.lib.umd.edu/solrizer
 
 See the [LICENSE](LICENSE.md) file for license rights and
 limitations (Apache 2.0).
-
-
-[python-edtf]: https://pypi.org/project/edtf/
-[EDTF]: https://www.loc.gov/standards/datetime/

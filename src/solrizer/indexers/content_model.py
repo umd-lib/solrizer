@@ -10,6 +10,7 @@ Output fields:
 | Field                       | Python Type | Solr Type |
 |-----------------------------|-------------|-----------|
 | `content_model_name__str`   | `str`       | string    |
+| `described_by__uri`         | `str`       | string    |
 
 Output field patterns:
 
@@ -37,6 +38,7 @@ Output field patterns:
 
 import logging
 from collections.abc import Iterator, Iterable, Callable
+from typing import NamedTuple
 
 from langcodes import standardize_tag, LanguageTagError
 from plastron.models import ContentModeledResource
@@ -46,11 +48,45 @@ from plastron.rdfmapping.resources import RDFResource, RDFResourceBase
 from plastron.repo import Repository
 from plastron.validation.vocabularies import VocabularyTerm
 from rdflib import Literal, URIRef
+from urlobject import URLObject
 
 from solrizer.indexers import SolrFields, IndexerContext, IndexerError
 from solrizer.indexers.utils import solr_datetime
 
 logger = logging.getLogger(__name__)
+
+
+class Suffix(NamedTuple):
+    """Encapsulates a suffix that encodes the field type, plurality (i.e., is it
+    a multivalued field or not), and language tag. Stringifies to the `base` value,
+    plus "s" if `plural`, plus the `lang` value.
+
+    ```pycon
+    >>> str(Suffix('__str'))
+    '__str'
+
+    >>> str(Suffix('__str', plural=True))
+    '__strs'
+
+    >>> str(Suffix('__txt', lang='_de'))
+    '__txt_de'
+
+    >>> str(Suffix('__txt', plural=True, lang='_de'))
+    '__txts_de'
+
+    ```
+    """
+
+    base: str
+    """Base suffix part. Should begin with a separator like "__"."""
+    plural: bool = False
+    """Whether this field is multivalued."""
+    lang: str = ''
+    """Optional language tag. Should begin with a separator like "_"."""
+
+    def __str__(self):
+        return self.base + ('s' if self.plural else '') + self.lang
+
 
 FIELD_ARGUMENTS_BY_DATATYPE = {
     # integer types
@@ -93,8 +129,11 @@ def content_model_fields(ctx: IndexerContext) -> SolrFields:
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
     """Iterates over the RDF properties of `obj`, and creates a dictionary of Solr field
-    names to values. If `obj` is an instance of `plastron.models.ContentModeledResource`,
-    include a `content_model_name__str` field in the results."""
+    names to values. Adds a `described_by__uri` field containing the "described by" URL for the
+    resource at `obj.uri`. For Non-RDF Source resources in Fedora, this will be the resource URI
+    followed by the string "/fcr:metadata". For RDF Source resources, this will be the resource
+    URI itself. If `obj` is an instance of `plastron.models.ContentModeledResource`, include a
+    `content_model_name__str` field in the results."""
     logger.info(f'Converting {obj.uri}')
 
     if isinstance(obj, ContentModeledResource):
@@ -106,6 +145,12 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
         model_name = None
         fields = {}
 
+    # get the "described by" value for non-fragment resources that are within the repository
+    url = URLObject(obj.uri)
+    if url in repo.endpoint and not url.fragment:
+        resource = repo[url].read()
+        fields.update(described_by__uri=str(resource.description_url or resource.url))
+
     for prop in obj.rdf_properties():
         if len(prop) == 0:
             # skip properties with no values
@@ -116,11 +161,18 @@ def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -
             logger.debug(f'Skipping property {prop.attr_name} of model {model_name}')
             continue
         if isinstance(prop, RDFDataProperty):
-            fields.update(get_data_fields(prop, prefix))
+            fields.update(get_data_fields(prop, prefix, get_resource_language(obj)))
         elif isinstance(prop, RDFObjectProperty):
             fields.update(get_object_fields(prop, repo, prefix))
 
     return fields
+
+
+def get_resource_language(obj: ContentModeledResource, prop_name: str = 'language') -> str | None:
+    if not hasattr(obj, prop_name):
+        return None
+    language = getattr(obj, prop_name).value
+    return str(language) if language is not None else None
 
 
 def get_linked_objects(prop: RDFObjectProperty, repo: Repository) -> Iterator[RDFResource]:
@@ -176,7 +228,7 @@ def language_suffix(language: str | None) -> str:
         return ''
 
 
-def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
+def get_data_fields(prop: RDFDataProperty, prefix: str = '', resource_language: str = None) -> SolrFields:
     """Get the dictionary of field key(s) and value(s) for the given data
     property using `get_field()`. All keys are prepended with the given
     `prefix`.
@@ -204,14 +256,30 @@ def get_data_fields(prop: RDFDataProperty, prefix: str = '') -> SolrFields:
                 fields.update(get_field(
                     prop=prop,
                     prefix=prefix,
-                    suffix='__txt' + language_suffix(language),
+                    suffix=Suffix('__txt', plural=prop.repeatable, lang=language_suffix(language)),
                     value_filter=lambda v: v.language == language,
                 ))
             # add a `__display` field that contains all the values, with embedded language tags
-            fields.update({f'{prefix}{prop.attr_name}__display': [
-                embed_language_tag(v, '[@{tag}]{value}') for v in prop.values
-            ]})
+            fields.update({f'{prefix}{prop.attr_name}__display': get_display_values(prop.values, resource_language)})
             return fields
+
+
+def get_display_values(values: Iterable[Literal], preferred_language: str = None) -> list[str]:
+    """Transform an iterable collection of RDF literals to a list of strings
+    with embedded language tags (using `embed_language_tag`). These strings
+    are sorted by language tag, then value. Literals without a language tag
+    are sorted to the end. If a `preferred_language` is given, literals whose
+    language tags match the `preferred_language` tag are sorted to the beginning."""
+
+    def _by_language(value: Literal):
+        if value.language is None:
+            return f'3,{value.casefold()}'
+        elif preferred_language is not None and standardize_tag(value.language) == standardize_tag(preferred_language):
+            return f'1,{value.casefold()}'
+        else:
+            return f'2,{standardize_tag(value.language)},{value.casefold()}'
+
+    return [embed_language_tag(v, '[@{tag}]{value}') for v in sorted(values, key=_by_language)]
 
 
 def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '') -> SolrFields:
@@ -261,7 +329,7 @@ def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '
 def get_field(
     prop: RDFProperty,
     prefix: str = '',
-    suffix: str = '__str',
+    suffix: Suffix | str = '__str',
     converter: Callable[[Literal | URIRef], str | int] = str,
     value_filter: Callable[[Literal | URIRef], bool] = lambda v: True,
 ) -> SolrFields:
@@ -272,10 +340,14 @@ def get_field(
 
     If `converter` is given, it is applied to the included values. Should
     return a `str` or `int`. Default is `str()`."""
-    name = prefix + prop.attr_name + suffix
+
+    if isinstance(suffix, str):
+        suffix = Suffix(suffix, plural=prop.repeatable)
+
+    name = prefix + prop.attr_name + str(suffix)
     values = [converter(v) for v in prop.values if value_filter(v)]
     if prop.repeatable:
-        return {name + 's': values}
+        return {name: values}
     else:
         return {name: values[0]}
 

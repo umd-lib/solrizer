@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from werkzeug import Response
-from werkzeug.exceptions import HTTPException, NotFound, BadRequest
+from werkzeug.exceptions import HTTPException, NotFound, BadRequest, InternalServerError
 
 
 class ProblemDetailError(HTTPException):
@@ -76,6 +76,14 @@ class UnknownCommand(ProblemDetailError, BadRequest):
     """
     name = 'Unknown command'
     description = '"{value}" is not a recognized value for the "command" parameter.'
+
+
+class ConfigurationError(ProblemDetailError, InternalServerError):
+    """The server is incorrectly configured.
+
+    The HTTP status is `500 Internal Server Error`."""
+    name = 'Configuration error'
+    description = 'The server is incorrectly configured.'
 
 
 def problem_detail_response(e: ProblemDetailError) -> Response:
