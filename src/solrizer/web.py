@@ -81,6 +81,7 @@ from typing import MutableMapping
 
 import psutil
 import yaml
+from codetiming import Timer
 from flask import Flask, request
 from plastron.client import Client, Endpoint
 from plastron.models import ModelClassError, guess_model
@@ -101,7 +102,7 @@ from solrizer.errors import (
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(threadName)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -248,56 +249,61 @@ def create_app():
             app.logger.error('The "update" command requires SOLRIZER_SOLR_QUERY_ENDPOINT to be set')
             raise ConfigurationError()
 
-        try:
-            resource: RepositoryResource = app.config['repo'][uri].read()
-        except RepositoryError as e:
-            raise ResourceNotAvailable(uri=uri) from e
+        with Timer(
+            name=f'create Solr document for {uri}',
+            text='Time to {name}: {milliseconds:.3f} ms',
+            logger=app.logger.info,
+        ):
+            try:
+                resource: RepositoryResource = app.config['repo'][uri].read()
+            except RepositoryError as e:
+                raise ResourceNotAvailable(uri=uri) from e
 
-        # dynamically determine the model_class
-        try:
-            model_class = guess_model(resource.describe(RDFResource))
-        except ModelClassError as e:
-            app.logger.error(f'Unable to determine model class for {uri}')
-            raise ResourceNotAvailable(uri=uri) from e
+            # dynamically determine the model_class
+            try:
+                model_class = guess_model(resource.describe(RDFResource))
+            except ModelClassError as e:
+                app.logger.error(f'Unable to determine model class for {uri}')
+                raise ResourceNotAvailable(uri=uri) from e
 
-        logger.info(f'Model class for {uri} is {model_class.__name__}')
+            logger.info(f'Model class for {uri} is {model_class.__name__}')
 
-        ctx = IndexerContext(
-            repo=app.config['repo'],
-            resource=resource,
-            model_class=model_class,
-            doc={'id': uri},
-            config=app.config,
-        )
-        try:
-            indexers = app.config['INDEXERS'][model_class.__name__]
-        except KeyError as e:
-            logger.info(f'No specific indexers configured for the {e} model, using defaults')
-            indexers = app.config['INDEXERS']['__default__']
+            ctx = IndexerContext(
+                repo=app.config['repo'],
+                resource=resource,
+                model_class=model_class,
+                doc={'id': uri},
+                config=app.config,
+            )
+            try:
+                indexers = app.config['INDEXERS'][model_class.__name__]
+            except KeyError as e:
+                logger.info(f'No specific indexers configured for the {e} model, using defaults')
+                indexers = app.config['INDEXERS']['__default__']
 
-        logger.info(f'Running indexers: {indexers}')
-        try:
-            doc = ctx.run(indexers)
-        except (IndexerError, RuntimeError) as e:
-            app.logger.error(f'Error while processing {uri} for indexing: {e}')
-            raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
+            logger.info(f'Running indexers: {indexers}')
+            try:
+                doc = ctx.run(indexers)
+            except (IndexerError, RuntimeError) as e:
+                app.logger.error(f'Error while processing {uri} for indexing: {e}')
+                raise InternalServerError(f'Error while processing {uri} for indexing: {e}')
 
-        match command:
-            case 'add':
-                # wrap in an add command
-                doc = {"add": {"doc": doc}}
-            case 'update':
-                # create an atomic update by comparing the newly generated document to
-                # the existing document in Solr for the given item
-                try:
-                    doc = [create_atomic_update(doc, app.config['SOLR_QUERY_ENDPOINT'])]
-                except KeyError as e:
-                    raise InternalServerError('Cannot generate Solr atomic update') from e
-            case None, '':
-                # just the plain document
-                pass
+            match command:
+                case 'add':
+                    # wrap in an add command
+                    doc = {"add": {"doc": doc}}
+                case 'update':
+                    # create an atomic update by comparing the newly generated document to
+                    # the existing document in Solr for the given item
+                    try:
+                        doc = [create_atomic_update(doc, app.config['SOLR_QUERY_ENDPOINT'])]
+                    except KeyError as e:
+                        raise InternalServerError('Cannot generate Solr atomic update') from e
+                case None, '':
+                    # just the plain document
+                    pass
 
-        return json.dumps(doc, sort_keys=True), {'Content-Type': 'application/json;charset=utf-8'}
+            return json.dumps(doc, sort_keys=True), {'Content-Type': 'application/json;charset=utf-8'}
 
     # serve error responses using the RFC 9457 Problem Detail JSON format
     app.register_error_handler(ProblemDetailError, problem_detail_response)
