@@ -19,4 +19,6 @@ RUN pip install "git+https://github.com/umd-lib/plastron.git@release/4.6#egg=pla
 
 RUN pip install -e .
 
+VOLUME /var/cache/solrizer
+
 ENTRYPOINT [ "solrizer" ]

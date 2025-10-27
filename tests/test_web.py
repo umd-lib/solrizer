@@ -1,6 +1,11 @@
-import pytest
+from typing import Any
+from unittest.mock import patch, MagicMock
 
-from solrizer.web import load_config_from_files
+import pytest
+from requests import Session
+from requests_cache import CachedSession, BaseCache
+
+from solrizer.web import load_config_from_files, get_session
 
 
 def test_load_config_from_files(datadir):
@@ -29,6 +34,38 @@ def test_load_config_from_files_file_not_found(datadir):
     }
     with pytest.raises(RuntimeError):
         load_config_from_files(config)
+
+
+@pytest.mark.parametrize(
+    ('config', 'expected_class'),
+    [
+        ({}, Session),
+        ({'PLASTRON_CACHE_ENABLED': False}, Session),
+        ({'PLASTRON_CACHE_ENABLED': True}, CachedSession),
+    ],
+)
+@patch('solrizer.web.init_backend')
+def test_get_session_class(mock_init_backend, config: dict[str, Any], expected_class):
+    mock_init_backend.return_value = BaseCache()
+    session = get_session(config)
+    assert isinstance(session, expected_class)
+
+
+@patch('solrizer.web.init_backend')
+def test_get_session_cache_backend_params(mock_init_backend: MagicMock):
+    mock_init_backend.return_value = BaseCache()
+    get_session({
+        'PLASTRON_CACHE_ENABLED': True,
+        'PLASTRON_CACHE_NAME': 'test_cache',
+        'PLASTRON_CACHE_BACKEND': 'experimental',
+        'PLASTRON_CACHE_PARAMS': {'host': 'example.com', 'port': 1234},
+    })
+    mock_init_backend.assert_called_with(
+        cache_name='test_cache',
+        backend='experimental',
+        host='example.com',
+        port=1234,
+    )
 
 
 def test_home_page(client):

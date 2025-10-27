@@ -10,13 +10,21 @@ Configuration of the application is handled by a combination of
 
 ### Environment
 
+#### fcrepo Repository
+
 * **`SOLRIZER_FCREPO_ENDPOINT`** URL of the fcrepo repository.
 * **`SOLRIZER_FCREPO_JWT_SECRET`** Shared secret used to generate
   access tokens to connect to the fcrepo repository.
+
+#### Handle Server
+
 * **`SOLRIZER_HANDLE_PROXY_PREFIX`** HTTP URL of the handle service
   resolver that should be prepended to a handle to make a resolvable
   URL. See the `solrizer.indexers.handles` indexer for more information
   about the handles indexer.
+
+#### IIIF
+
 * **`SOLRIZER_IIIF_IDENTIFIER_PREFIX`** Prefix to use when generating
   IIIF identifiers from repository URIs. See the `solrizer.indexers.iiif_links`
   indexer module for more information about the IIIF indexer.
@@ -25,18 +33,43 @@ Configuration of the application is handled by a combination of
 * **`SOLRIZER_IIIF_THUMBNAIL_URL_PATTERN`** URL template for IIIF image server
   URLs for individual thumbnail images. Use `{+id}` to insert the IIIF
   identifier for the image.
+
+#### Indexers
+
 * **`SOLRIZER_INDEXERS_FILE`** Name of the file listing which
   indexers to use for each content model.
 * **`SOLRIZER_INDEXER_SETTINGS_FILE`** Name of the file that
   contains indexer-specific configuration.
+
+#### Plastron Client Caching
+
+* **`SOLRIZER_PLASTRON_CACHE_ENABLED`** Whether to use client caching in the
+  Plastron client connecting to the fcrepo repository. Defaults to `False`.
+* **`SOLRIZER_PLASTRON_CACHE_NAME`** Value for the `cache_name` of the
+  [requests-cache](https://requests-cache.readthedocs.io/) `CachedSession`.
+  Defaults to `solrizer_cache`.
+* **`SOLRIZER_PLASTRON_CACHE_BACKEND`** String alias for the cache backend
+  to use. Defaults to `None`, which in turn falls back to the default
+  defined by [requests-cache](https://requests-cache.readthedocs.io/), which
+  is currently `SQLiteCache`.
+* **`SOLRIZER_PLASTRON_CACHE_PARAMS`** Mapping of optional additional parameters
+  to pass to the cache backend, formatted as a JSON object (e.g.,
+  `{"host":"localhost","port":6379}`)
+* **`SOLRIZER_PLASTRON_CACHE_EXPIRE_AFTER`** Cache expiration time in seconds.
+  Defaults to `120`.
+
+See also the `get_session()` function.
+
+#### Solr Server
+
 * **`SOLRIZER_SOLR_QUERY_ENDPOINT`** URL of the Solr service to query for
   the current document for a given item. This is required to generate the
   atomic updates for `?command=update` query parameter. See also the
-  `solrizer.solr.create_atomic_update` function.
+  `solrizer.solr.create_atomic_update()` function.
 
 During development, it is also useful to set `FLASK_DEBUG=1` to enable
-Flask's debug mode, which includes detailed error pages and hot reloading
-when the source code is updated.
+Flask's debug mode, which includes detailed error pages, `DEBUG`-level
+logging, and hot reloading when the source code is updated.
 
 Once the above `SOLRIZER_*` environment variables are loaded, they are available
 from the Flask app's `config` object without the `SOLRIZER_` prefix.
@@ -74,10 +107,12 @@ Python data structures that are deserialized from them. See the
 
 import json
 import logging
+import os
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from pathlib import Path
 from time import strftime
-from typing import MutableMapping
+from typing import Any
 
 import psutil
 import yaml
@@ -88,6 +123,8 @@ from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
 from plastron.utils import envsubst
+from requests import Session
+from requests_cache import CachedSession, init_backend
 from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
@@ -102,9 +139,11 @@ from solrizer.errors import (
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(threadName)s:%(name)s:%(message)s')
+logging.basicConfig(
+    level='DEBUG' if os.environ.get('FLASK_DEBUG', 0) else 'INFO',
+    format='%(levelname)s:%(threadName)s:%(name)s:%(message)s',
+)
 logger = logging.getLogger(__name__)
-
 
 LOADERS = {
     '.json': json.load,
@@ -122,7 +161,7 @@ def load_config_from_files(config: MutableMapping):
     After loading, uses `plastron.utils.envsubst` to apply substitutions to the
     loaded object. You may use any of the keys currently defined in the config;
     in particular, this means you can use the values of environment variables
-    with the prefix "SOLRIZER_". In the file, use the name without the "SOLRIZER_"
+    with the prefix `SOLRIZER_`. In the file, use the name without the `SOLRIZER_`
     prefix.
 
     ```zsh
@@ -170,6 +209,38 @@ def load_config_from_files(config: MutableMapping):
                 raise RuntimeError(f'Config file "{file}" not found') from e
 
 
+def get_session(config: Mapping[str, Any]) -> Session:
+    """Creates a [Session](https://requests.readthedocs.io/en/latest/api/#request-sessions)
+    or [CachedSession](https://requests-cache.readthedocs.io/en/stable/modules/requests_cache.session.html)
+    object from the given configuration.
+
+    Recognized keys in `config` are:
+
+    * `PLASTRON_CACHE_ENABLED`
+    * `PLASTRON_CACHE_NAME`
+    * `PLASTRON_CACHE_BACKEND`
+    * `PLASTRON_CACHE_PARAMS`
+    * `PLASTRON_CACHE_EXPIRES_AFTER`
+
+    See [Environment Variables § Plastron Client Caching](#plastron-client-caching)
+    for more details about the usage of each of these. Note that in the environment
+    variables section, they are all prefixed with `SOLRIZER_`.
+    """
+    if config.get('PLASTRON_CACHE_ENABLED', False):
+        logger.info('Plastron client caching enabled')
+        backend = init_backend(
+            cache_name=config.get('PLASTRON_CACHE_NAME', 'solrizer_cache'),
+            backend=config.get('PLASTRON_CACHE_BACKEND'),
+            **config.get('PLASTRON_CACHE_PARAMS', {}),
+        )
+        return CachedSession(
+            backend=backend,
+            expire_after=config.get('PLASTRON_CACHE_EXPIRE_AFTER', 120),
+        )
+    else:
+        return Session()
+
+
 def create_app():
     start_time = datetime.now()
     app = Flask(__name__)
@@ -181,6 +252,7 @@ def create_app():
         auth=JWTSecretAuth(
             secret=app.config['FCREPO_JWT_SECRET'], claims={'sub': 'solrizer', 'iss': 'solrizer', 'role': 'fedoraAdmin'}
         ),
+        session=get_session(app.config),
     )
     app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', {})
