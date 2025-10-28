@@ -13,6 +13,10 @@ COPY src pyproject.toml /opt/solrizer/
 # install patched version of python-edtf (see https://umd-dit.atlassian.net/browse/LIBFCREPO-1633)
 RUN pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
 
+# install plastron-client and plastron-repo 4.6 development versions until 4.6.0 is released
+RUN pip install "git+https://github.com/umd-lib/plastron.git@release/4.6#egg=plastron-client&subdirectory=plastron-client"
+RUN pip install "git+https://github.com/umd-lib/plastron.git@release/4.6#egg=plastron-repo&subdirectory=plastron-repo"
+
 RUN pip install -e .
 
 ENTRYPOINT [ "solrizer" ]
