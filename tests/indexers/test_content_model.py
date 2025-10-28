@@ -317,7 +317,7 @@ def test_get_model_fields(obj, prefix, expected_fields):
             assert v == expected_fields[k]
 
 
-class TestingResource(ContentModeledResource):
+class BasicResource(ContentModeledResource):
     model_name = 'TestingResource'
 
 
@@ -345,11 +345,11 @@ def test_described_by(url, description_url, expected_value):
     repo = MagicMock(spec=Repository, endpoint=Endpoint('http://example.com/fcrepo'))
     repo.__getitem__.return_value = mock_resource
     mock_resource.read.return_value = mock_resource
-    mock_resource.describe.return_value = TestingResource(uri='http://example.com/fcrepo')
+    mock_resource.describe.return_value = BasicResource(uri='http://example.com/fcrepo')
     context = IndexerContext(
         repo=repo,
         resource=mock_resource,
-        model_class=TestingResource,
+        model_class=BasicResource,
         doc={'id': 'foo'},
         config={},
     )
