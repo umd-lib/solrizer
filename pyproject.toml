@@ -8,10 +8,10 @@ dependencies = [
     "flask",
     "jq",
     "langcodes",
-    "plastron-client>=4.5.1",
+    "plastron-client>=4.6",
     "plastron-models>=4.5.1",
     "plastron-rdf>=4.5.1",
-    "plastron-repo>=4.5.1",
+    "plastron-repo>=4.6",
     "plastron-utils>=4.5.1",
     "psutil",
     "pyyaml",
@@ -22,6 +22,7 @@ dependencies = [
     # require rdflib 7.0.0+ in order to have access
     # to the NamespaceManager.curie() method
     "rdflib>=7.0.0",
+    "requests-cache",
     "requests-jwtauth",
     "uritemplate",
     "waitress",

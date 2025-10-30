@@ -15,4 +15,6 @@ RUN pip install git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee0
 
 RUN pip install -e .
 
+VOLUME /var/cache/solrizer
+
 ENTRYPOINT [ "solrizer" ]
