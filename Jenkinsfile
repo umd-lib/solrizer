@@ -101,10 +101,6 @@ pipeline {
           apt-get update && apt-get install -y git && apt-get clean
           . .venv/bin/activate
 
-          # install plastron-client and plastron-repo 4.6 development versions until 4.6.0 is released
-          pip install "git+https://github.com/umd-lib/plastron.git@release/4.6#egg=plastron-client&subdirectory=plastron-client"
-          pip install "git+https://github.com/umd-lib/plastron.git@release/4.6#egg=plastron-repo&subdirectory=plastron-repo"
-
           pip install -e .[test]
 
           # install patched version of python-edtf (see https://umd-dit.atlassian.net/browse/LIBFCREPO-1633)
