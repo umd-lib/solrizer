@@ -30,6 +30,10 @@ dependencies = [
 requires-python = ">=3.12"
 
 [project.optional-dependencies]
+# to use Redis as the caching backend
+redis = [
+    "redis",
+]
 test = [
     "httpretty",
     "pytest",
