@@ -139,8 +139,9 @@ from solrizer.errors import (
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
 
+debug_mode = int(os.environ.get('FLASK_DEBUG', '0'))
 logging.basicConfig(
-    level='DEBUG' if os.environ.get('FLASK_DEBUG', 0) else 'INFO',
+    level='DEBUG' if debug_mode else 'INFO',
     format='%(levelname)s:%(threadName)s:%(name)s:%(message)s',
 )
 logger = logging.getLogger(__name__)
