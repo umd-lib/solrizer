@@ -2,13 +2,16 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from lxml import etree
 from plastron.models.umd import Item
 from plastron.namespaces import pcdmuse
+from plastron.ocr import OCRResource, HOCRResource
 from plastron.repo.pcdm import PCDMObjectResource
 
 from conftest import create_mock_repo
 from solrizer.indexers import IndexerError, IndexerContext
-from solrizer.indexers.extracted_text import get_text_page, PageText, get_text_pages, extracted_text_fields
+from solrizer.indexers.extracted_text import get_text_page, PageText, get_text_pages, extracted_text_fields, \
+    get_tagged_ocr_text
 
 
 class MockBinaryResource:
@@ -186,3 +189,14 @@ def test_extracted_text_fields(create_mock_repo):
     )
     fields = extracted_text_fields(ctx)
     assert fields == {}
+
+
+def test_get_tagged_ocr_text(datadir):
+    with (datadir / 'libfcrepo-1743.xml').open() as fh:
+        doc = etree.parse(fh)
+
+    resource = HOCRResource(doc, (400, 400))
+    tagged_words = list(get_tagged_ocr_text(resource, 0))
+    words = [t.split('|')[0] for t in tagged_words]
+    expected_words = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight']
+    assert words == expected_words
