@@ -5,7 +5,6 @@ from plastron.models.letter import Letter
 from plastron.models.newspaper import Issue
 from plastron.models.poster import Poster
 from plastron.models.umd import Item
-from plastron.rdfmapping.resources import RDFResourceBase
 from plastron.repo import Repository
 from plastron.repo.pcdm import PCDMObjectResource
 from rdflib import Literal, URIRef
@@ -109,13 +108,14 @@ from solrizer.indexers.facets import facet_fields
             {
                 'presentation_set__facet': ['Labor'],
                 'publication_status__facet': ['Unpublished'],
+                'resource_type__facet': ['Newspapers'],
                 'visibility__facet': ['Visible'],
             },
             id='Issue',
         ),
     ],
 )
-def test_facet_fields(obj: RDFResourceBase, expected_fields, mock_vocabularies, get_mock_resource):
+def test_facet_fields(obj: ContentModeledResource, expected_fields, mock_vocabularies, get_mock_resource):
 
     mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
     mock_resource.get_members.return_value = []

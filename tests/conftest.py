@@ -6,13 +6,13 @@ import plastron.models.authorities
 import plastron.validation.vocabularies
 import pytest
 from httpretty import httpretty
-from plastron.client import Endpoint
+from plastron.client import Endpoint, Client
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
 from plastron.repo.pcdm import PCDMObjectResource, ProxyIterator
 from rdflib import Graph, URIRef
 
-from solrizer.indexers import SolrFields
+from solrizer.indexers import SolrFields, IndexerContext
 from solrizer.web import create_app
 
 
@@ -102,6 +102,23 @@ def get_mock_resource():
         mock_resource.describe.return_value = obj
         return mock_resource
     return _mock_resource
+
+
+@pytest.fixture
+def get_mock_context(get_mock_resource):
+    def _mock_context(obj, resource=None, repo=None):
+        if resource is None:
+            resource = get_mock_resource('/foo', obj)
+        if repo is None:
+            repo = Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo')))
+        return IndexerContext(
+            repo=repo,
+            resource=resource,
+            model_class=obj.__class__,
+            doc={},
+            config={},
+        )
+    return _mock_context
 
 
 @pytest.fixture
