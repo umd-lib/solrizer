@@ -1,11 +1,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from plastron.client import Client, Endpoint
-from plastron.models.pcdm import PCDMObject
 from plastron.models import ContentModeledResource
+from plastron.models.newspaper import Issue
 from plastron.models.umd import AdminSet, Item
-from plastron.namespaces import rdf, dcterms, rdf, umdaccess
+from plastron.namespaces import dcterms, rdf, umdaccess
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryResource
@@ -23,7 +22,7 @@ from solrizer.faceters import (
     concat_values,
     get_labels,
     language_name,
-    rights_statement_label,
+    rights_statement_label, ResourceTypeFacet,
 )
 from solrizer.indexers import IndexerContext
 
@@ -104,15 +103,8 @@ def test_get_labels():
         (RDFResource(rdf_type=umdaccess.Published), ['Published']),
     ]
 )
-def test_publication_status_facet(get_mock_resource, obj, expected_values):
-    ctx = IndexerContext(
-        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', obj),
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-    faceter = PublicationStatusFacet(ctx)
+def test_publication_status_facet(get_mock_context, obj, expected_values):
+    faceter = PublicationStatusFacet(get_mock_context(obj))
     assert faceter.get_values() == expected_values
 
 
@@ -123,34 +115,20 @@ def test_publication_status_facet(get_mock_resource, obj, expected_values):
         (RDFResource(rdf_type=umdaccess.Hidden), ['Hidden']),
     ]
 )
-def test_visibility_facet(get_mock_resource, obj, expected_values):
-    ctx = IndexerContext(
-        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', obj),
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-    faceter = VisibilityFacet(ctx)
+def test_visibility_facet(get_mock_context, obj, expected_values):
+    faceter = VisibilityFacet(get_mock_context(obj))
     assert faceter.get_values() == expected_values
 
 
-def test_admin_set_facet(get_mock_resource):
-    obj = PCDMObject(member_of=URIRef('http://example.com/collection'))
+def test_admin_set_facet(get_mock_context):
+    obj = Item(member_of=URIRef('http://example.com/collection'))
     collection = AdminSet(uri=URIRef('http://example.com/collection'), title=Literal('Test Admin Set'))
     mock_collection = MagicMock(spec=RepositoryResource)
     mock_collection.read.return_value = mock_collection
     mock_collection.describe.return_value = collection
     mock_repo = MagicMock(spec=Repository)
     mock_repo.__getitem__.return_value = mock_collection
-    ctx = IndexerContext(
-        repo=mock_repo,
-        resource=get_mock_resource('/foo', obj),
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-    faceter = AdminSetFacet(ctx)
+    faceter = AdminSetFacet(get_mock_context(obj, repo=mock_repo))
     assert faceter.get_values() == ['Test Admin Set']
 
 
@@ -161,7 +139,7 @@ def test_admin_set_facet(get_mock_resource):
         (False, None),
     ]
 )
-def test_ocr_facet(get_mock_resource, binary_resource, expected_values):
+def test_ocr_facet(get_mock_resource, get_mock_context, binary_resource, expected_values):
     obj = ContentModeledResource()
     mock_resource = get_mock_resource('/foo', obj, resource_class=PCDMObjectResource)
     mock_resource.get_members.return_value = []
@@ -172,28 +150,13 @@ def test_ocr_facet(get_mock_resource, binary_resource, expected_values):
     else:
         mock_resource.get_file.return_value = None
 
-    ctx = IndexerContext(
-        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=mock_resource,
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-
-    faceter = OCRFacet(ctx)
+    faceter = OCRFacet(get_mock_context(obj, resource=mock_resource))
     assert faceter.get_values() == expected_values
 
 
-def test_presentation_set_attribute_error(get_mock_resource):
+def test_presentation_set_attribute_error(get_mock_context):
     obj = RDFResource()
-    ctx = IndexerContext(
-        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', obj),
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-    faceter = PresentationSetFacet(ctx)
+    faceter = PresentationSetFacet(get_mock_context(obj))
     assert faceter.get_values() is None
 
 
@@ -206,16 +169,13 @@ def test_presentation_set_attribute_error(get_mock_resource):
         (None, None)
     ]
 )
-def test_censorship_facet(get_mock_resource, description, expected_value):
+def test_censorship_facet(get_mock_context, description, expected_value):
     obj = Item(description=description) if description is not None else Item()
-
-    ctx = IndexerContext(
-        repo=Repository(client=Client(endpoint=Endpoint('http://example.com/fcrepo'))),
-        resource=get_mock_resource('/foo', obj),
-        model_class=obj.__class__,
-        doc={},
-        config={},
-    )
-
-    faceter = CensorshipFacet(ctx)
+    faceter = CensorshipFacet(get_mock_context(obj))
     assert faceter.get_values() == expected_value
+
+
+def test_issue_resource_type_facet_always_newspapers(get_mock_context):
+    obj = Issue()
+    faceter = ResourceTypeFacet(get_mock_context(obj))
+    assert faceter.get_values() == ['Newspapers']
