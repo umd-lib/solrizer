@@ -108,28 +108,25 @@ Python data structures that are deserialized from them. See the
 import json
 import logging
 import os
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import datetime
-from pathlib import Path
 from time import strftime
 from typing import Any
 
 import psutil
 import yaml
 from codetiming import Timer
+from configurenv import load_config_from_files
 from flask import Flask, render_template, request
 from plastron.client import Client, Endpoint
 from plastron.client.proxied import ProxiedClient
 from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
-from plastron.utils import envsubst
 from requests import Session
 from requests.auth import AuthBase
 from requests_cache import CachedSession, init_backend
 from requests_jwtauth import JWTSecretAuth
-from werkzeug.exceptions import InternalServerError
-
 from solrizer import __version__
 from solrizer.errors import (
     ConfigurationError,
@@ -142,6 +139,7 @@ from solrizer.errors import (
 )
 from solrizer.indexers import AVAILABLE_INDEXERS, IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
+from werkzeug.exceptions import InternalServerError
 
 debug_mode = int(os.environ.get('FLASK_DEBUG', '0'))
 logging.basicConfig(
@@ -155,63 +153,6 @@ LOADERS = {
     '.yml': yaml.safe_load,
     '.yaml': yaml.safe_load,
 }
-
-
-def load_config_from_files(config: MutableMapping):
-    """Iterates over the keys in `config`. For any with the format "{NAME}_FILE",
-    treat its value as a filename. Reads that file using the appropriate loader
-    (".json" files use `json.load`, and ".yml" and ".yaml" files use `yaml.safe_load`)
-    and set the config key "{NAME}" to the return value of the loader.
-
-    After loading, uses `plastron.utils.envsubst` to apply substitutions to the
-    loaded object. You may use any of the keys currently defined in the config;
-    in particular, this means you can use the values of environment variables
-    with the prefix `SOLRIZER_`. In the file, use the name without the `SOLRIZER_`
-    prefix.
-
-    ```zsh
-    # environment
-    SOLRIZER_HANDLE_PROXY_PREFIX=http://hdl-local/
-    SOLRIZER_INDEXER_SETTINGS_FILE=indexer-settings.yml
-    ```
-
-    ```yaml
-    # indexer-settings.yml
-    handles:
-      proxy_prefix: ${HANDLE_PROXY_PREFIX}
-    ```
-
-    Results in this value for `config['INDEXER_SETTINGS']`:
-
-    ```python
-    {
-        'handles': {
-            'proxy_prefix': 'http://hdl-local/'
-        }
-    }
-    ```
-
-    Ignores a "{NAME}_FILE" key if "{NAME}" is already defined in config (i.e.,
-    "{NAME}" takes precedence over "{NAME}_FILE").
-
-    Raises a `RuntimeError` if the file suffix is unrecognized, or if the file
-    cannot be opened."""
-    file_keys = [k for k in config.keys() if k.endswith('_FILE')]
-    for file_key in file_keys:
-        # strip the "_FILE" suffix
-        key = file_key[:-5]
-        if key not in config:
-            # only load from file if there isn't already a config value with this key
-            file = Path(config[file_key])
-            try:
-                loader = LOADERS[file.suffix]
-            except KeyError as e:
-                raise RuntimeError(f'Cannot open a config file with suffix "{file.suffix}"') from e
-            try:
-                with file.open() as fh:
-                    config[key] = envsubst(loader(fh), config)
-            except FileNotFoundError as e:
-                raise RuntimeError(f'Config file "{file}" not found') from e
 
 
 def get_authenticator(config: Mapping[str, Any]) -> AuthBase | None:
