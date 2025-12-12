@@ -1,9 +1,17 @@
 # EDTF to Date Range Translation
 
 This page documents by example the conversions between EDTF date and Solr 
-[DateRange] values that the Solrizer [dates indexer] performs. These 
-examples are taken from the [unit tests](../tests/indexers/test_dates.py) 
-for the dates indexer.
+[DateRange] values that the Solrizer [dates indexer] performs.
+
+This Markdown file is used directly by the 
+[unit tests](../tests/indexers/test_dates.py) for the dates indexer. To 
+read this Markdown data, the unit tests use the [markdown-to-data] package.
+All the tables that have both an `EDTF` and `Solr DateRange` column are 
+consider as data sources. Each row in the table is converted to a tuple 
+that is passed to the unit test to check that the `EDTF` value gets 
+converted to the expected `Solr DateRange`.
+
+Extra columns are ignored by the unit test.
 
 ## Supported
 
@@ -145,4 +153,5 @@ e.g., `{1966,1979,1983}`
 
 [DateRange]: https://solr.apache.org/guide/solr/9_6/indexing-guide/date-formatting-math.html
 [dates indexer]: https://umd-lib.github.io/solrizer/solrizer/indexers/dates.html
+[markdown-to-data]: https://pypi.org/project/markdown-to-data/
 [edtf.appsettings]: https://github.com/ixc/python-edtf/blob/main/edtf/appsettings.py#L15-L28

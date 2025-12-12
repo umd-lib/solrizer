@@ -36,6 +36,7 @@ redis = [
 ]
 test = [
     "httpretty",
+    "markdown-to-data",
     "pytest",
     "pytest-cov",
     "pytest-datadir",
