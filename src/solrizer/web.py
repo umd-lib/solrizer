@@ -119,6 +119,7 @@ import yaml
 from codetiming import Timer
 from flask import Flask, render_template, request
 from plastron.client import Client, Endpoint
+from plastron.client.proxied import ProxiedClient
 from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
@@ -257,11 +258,23 @@ def get_session(config: Mapping[str, Any]) -> Session:
 
 def get_client(config: Mapping[str, Any]) -> Client:
     try:
-        return Client(
-            endpoint=Endpoint(config['FCREPO_ENDPOINT']),
-            auth=get_authenticator(config),
-            session=get_session(config),
-        )
+        endpoint = Endpoint(config['FCREPO_ENDPOINT'])
+        auth = get_authenticator(config)
+        session = get_session(config)
+
+        if 'FCREPO_ORIGIN' in config:
+            return ProxiedClient(
+                endpoint=endpoint,
+                origin_endpoint=Endpoint(config['FCREPO_ORIGIN']),
+                auth=auth,
+                session=session,
+            )
+        else:
+            return Client(
+                endpoint=endpoint,
+                auth=auth,
+                session=session,
+            )
     except KeyError as e:
         logger.error(f'Configuration is missing a required key: {e}')
         raise ConfigurationError() from e

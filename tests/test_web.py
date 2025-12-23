@@ -1,11 +1,17 @@
+from contextlib import nullcontext
+from types import NoneType
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from plastron.client import Client
+from plastron.client.proxied import ProxiedClient
 from requests import Session
 from requests_cache import BaseCache, CachedSession
+from requests_jwtauth import JWTSecretAuth
 
-from solrizer.web import get_session, load_config_from_files, get_repo
+from solrizer.errors import ConfigurationError
+from solrizer.web import get_session, load_config_from_files, get_repo, get_client, get_authenticator
 
 
 def test_load_config_from_files(datadir):
@@ -88,6 +94,40 @@ def test_health_check(client):
     assert 'total' in memory
     assert 'used' in memory
     assert 'used_percent' in memory
+
+
+@pytest.mark.parametrize(
+    ('config', 'expected_return'),
+    [
+        ({}, NoneType),
+        ({'FCREPO_JWT_SECRET': 'secret'}, JWTSecretAuth),
+    ]
+)
+def test_get_authenticator(config, expected_return):
+    auth = get_authenticator(config)
+    assert isinstance(auth, expected_return)
+
+
+@pytest.mark.parametrize(
+    ('config', 'result'),
+    [
+        ({}, pytest.raises(ConfigurationError)),
+        # cannot provide origin only, must include endpoint
+        ({'FCREPO_ORIGIN': 'http://localhost:8080/fcrepo/rest'}, pytest.raises(ConfigurationError)),
+        ({'FCREPO_ENDPOINT': 'http://localhost:8080/fcrepo/rest'}, nullcontext(Client)),
+        (
+            {
+                'FCREPO_ENDPOINT': 'http://example.com/fcrepo/rest',
+                'FCREPO_ORIGIN': 'http://localhost:8080/fcrepo/rest',
+            },
+            nullcontext(ProxiedClient),
+        ),
+    ]
+)
+def test_get_client(config, result):
+    with result as expected:
+        client = get_client(config)
+        assert isinstance(client, expected)
 
 
 @pytest.mark.parametrize(
