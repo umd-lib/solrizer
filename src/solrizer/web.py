@@ -130,11 +130,12 @@ from werkzeug.exceptions import InternalServerError
 
 from solrizer import __version__
 from solrizer.errors import (
+    ConfigurationError,
     NoResourceRequested,
     ProblemDetailError,
     ResourceNotAvailable,
     UnknownCommand,
-    problem_detail_response, ConfigurationError,
+    problem_detail_response,
 )
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
@@ -259,6 +260,16 @@ def create_app():
     app.config['INDEXERS'] = app.config.get('INDEXERS', {})
     if '__default__' not in app.config['INDEXERS']:
         app.config['INDEXERS']['__default__'] = ['content_model']
+
+    @app.before_request
+    def before_request():
+        plastron_cache_enabled = request.args.get('plastron-cache-enabled')
+        if plastron_cache_enabled == 'no' or plastron_cache_enabled == '0':
+            app.config['PLASTRON_CACHE_ENABLED'] = False
+            client.session = get_session(app.config)
+        else:
+            app.config['PLASTRON_CACHE_ENABLED'] = True
+            client.session = get_session(app.config)
 
     # Source: https://gist.github.com/alexaleluia12/e40f1dfa4ce598c2e958611f67d28966
     @app.after_request

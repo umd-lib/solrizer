@@ -1,11 +1,11 @@
 from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from requests import Session
-from requests_cache import CachedSession, BaseCache
+from requests_cache import BaseCache, CachedSession
 
-from solrizer.web import load_config_from_files, get_session
+from solrizer.web import get_session, load_config_from_files
 
 
 def test_load_config_from_files(datadir):
@@ -88,3 +88,15 @@ def test_health_check(client):
     assert 'total' in memory
     assert 'used' in memory
     assert 'used_percent' in memory
+
+
+def test_session_before_request(client, app):
+    app.config['PLASTRON_CACHE_ENABLED'] = True
+
+    response = client.get('/', query_string={'plastron-cache-enabled': 'no'})
+    assert response.status_code == 200
+    assert isinstance(app.config['repo'].client.session, Session)
+
+    response = client.get('/')
+    assert response.status_code == 200
+    assert isinstance(app.config['repo'].client.session, CachedSession)
