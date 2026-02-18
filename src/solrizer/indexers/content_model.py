@@ -20,8 +20,8 @@ Output field patterns:
 | `object__{attr}__ints`        | `list[int]`            | integer (multivalued)                     |
 | `object__{attr}__id`          | `str`                  | string                                    |
 | `object__{attr}__ids`         | `list[str]`            | string (multivalued)                      |
-| `object__{attr}__dt`          | `datetime`             | datetime range                            |
-| `object__{attr}__dts`         | `list[datetime]`       | datetime range (multivalued)              |
+| `object__{attr}__time`        | `str`                  | datetime point                            |
+| `object__{attr}__times`       | `list[str]`            | datetime point (multivalued)              |
 | `object__{attr}__edtf`        | `str`                  | string                                    |
 | `object__{attr}__edtfs`       | `list[str]`            | string (multivalued)                      |
 | `object__{attr}__txt`         | `str`                  | tokenized text                            |
@@ -94,7 +94,7 @@ FIELD_ARGUMENTS_BY_DATATYPE = {
     xsd.integer: {'suffix': '__int', 'converter': int},
     xsd.long: {'suffix': '__int', 'converter': int},
     # datetime type
-    xsd.dateTime: {'suffix': '__dt', 'converter': solr_datetime},
+    xsd.dateTime: {'suffix': '__time', 'converter': solr_datetime},
     # identifier types
     umdtype.accessionNumber: {'suffix': '__id'},
     umdtype.handle: {'suffix': '__id'},
