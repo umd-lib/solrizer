@@ -77,7 +77,7 @@ def test_invalid_language_suffix():
             False,
             ['2024-08-16T14:54:18.240+00:00'],
             {
-                'timestamp__dt': '2024-08-16T14:54:18.240000Z',
+                'timestamp__time': '2024-08-16T14:54:18.240000Z',
             },
         ),
         (
