@@ -1,0 +1,76 @@
+<html>
+    <head>
+    <title>Solrizer</title>
+    <style>
+        h2 {
+            margin-bottom: 5px;
+        }
+        .optional-label {
+            color: gray;
+            font-size: 90%;
+        }
+        #submit-button {
+            margin-top: 20px;
+            font-size: 120%;
+        }
+    </style>
+    </head>
+    <body>
+    <h1>Solrizer</h1>
+    <form method="get" action="/doc">
+        <div>
+            <h2><label for="uri">URI</label></h2>
+            <input
+                id="uri" name="uri" type="text" size="80"
+                placeholder="URI of an fcrepo document"
+            />
+        </div>
+
+        <div>
+            <h2><label for="command">Command</label> <span class="optional-label">(optional)</span></h2>
+            <select id="command" name="command">
+                <option value="">[default] - JSON for a "bare" Solr document</option>
+                <option value="add">add - JSON for inserting a document/overwriting an existing document</option>
+                <option value="update">update - JSON for a partial (diff-based) update of an existing document</option>
+            </select>
+        </div>
+
+        <div>
+            <h2><label for="indexers">Indexers</label> <span class="optional-label">(optional)</span></h2>
+            <input
+            type="text" id="indexers" name="indexers" size=80
+            placeholder="Comma-separated list of indexers to run instead of configured defaults."
+            >
+        </div>
+
+        <div>
+            <button id="submit-button" type="submit">Submit</button>
+        </div>
+    </form>
+    <hr/>
+    <p id="version">{{ version }}</p>
+    <script>
+    document.querySelector("form").addEventListener("submit", function() {
+        // Disable empty "input" fields, so they are not submitted as part
+        // of the form.
+        const inputs = this.querySelectorAll('input');
+
+        inputs.forEach(input => {
+            // If the trimmed value is empty, disable the field
+            if (input.value.trim() === "") {
+                input.disabled = true;
+            }
+        });
+    });
+    window.addEventListener('pageshow', function(event) {
+        // Re-enable any "input" fields that were disabled on submission.
+        // This is needed because Firefox persists the "disabled" state when
+        // returning to the form using the browser's "Back" button.
+        const inputs = document.querySelectorAll('input');
+
+        inputs.forEach(input => { input.disabled = false });
+        }
+    );
+    </script>
+    </body>
+</html>
