@@ -117,7 +117,7 @@ from typing import Any
 import psutil
 import yaml
 from codetiming import Timer
-from flask import Flask, request
+from flask import Flask, render_template, request
 from plastron.client import Client, Endpoint
 from plastron.models import ModelClassError, guess_model
 from plastron.rdfmapping.resources import RDFResource
@@ -317,27 +317,7 @@ def create_app():
 
     @app.route('/')
     def root():
-        return f'''
-        <html>
-          <head>
-            <title>Solrizer</title>
-          </head>
-          <body>
-            <h1>Solrizer</h1>
-            <form method="get" action="/doc">
-              <label>URI: <input name="uri" type="text" size="80"/></label>
-              <select name="command">
-                <option value=""></option>
-                <option value="add">add</option>
-                <option value="update">update</option>
-              </select>
-              <button type="submit">Submit</button>
-            </form>
-            <hr/>
-            <p id="version">{__version__}</p>
-          </body>
-        </html>
-        '''
+        return render_template('index.html', version=__version__)
 
     @app.route('/health')
     def get_health():
