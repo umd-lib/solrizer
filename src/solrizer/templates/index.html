@@ -1,0 +1,19 @@
+<html>
+    <head>
+    <title>Solrizer</title>
+    </head>
+    <body>
+    <h1>Solrizer</h1>
+    <form method="get" action="/doc">
+        <label>URI: <input name="uri" type="text" size="80"/></label>
+        <select name="command">
+        <option value=""></option>
+        <option value="add">add</option>
+        <option value="update">update</option>
+        </select>
+        <button type="submit">Submit</button>
+    </form>
+    <hr/>
+    <p id="version">{{version}}</p>
+    </body>
+</html>
