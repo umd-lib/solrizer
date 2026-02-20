@@ -267,8 +267,13 @@ def create_app():
         if plastron_cache_enabled == 'no' or plastron_cache_enabled == '0':
             app.config['PLASTRON_CACHE_ENABLED'] = False
             client.session = get_session(app.config)
-        else:
+        elif plastron_cache_enabled == 'yes' or plastron_cache_enabled == '1':
             app.config['PLASTRON_CACHE_ENABLED'] = True
+            client.session = get_session(app.config)
+        else:
+            app.config.from_prefixed_env('SOLRIZER')
+            load_config_from_files(app.config)
+
             client.session = get_session(app.config)
 
     # Source: https://gist.github.com/alexaleluia12/e40f1dfa4ce598c2e958611f67d28966

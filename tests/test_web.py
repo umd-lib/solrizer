@@ -91,11 +91,21 @@ def test_health_check(client):
 
 
 def test_session_before_request(client, app):
-    app.config['PLASTRON_CACHE_ENABLED'] = True
-
     response = client.get('/', query_string={'plastron-cache-enabled': 'no'})
     assert response.status_code == 200
     assert isinstance(app.config['repo'].client.session, Session)
+
+    response = client.get('/', query_string={'plastron-cache-enabled': '0'})
+    assert response.status_code == 200
+    assert isinstance(app.config['repo'].client.session, Session)
+
+    response = client.get('/', query_string={'plastron-cache-enabled': 'yes'})
+    assert response.status_code == 200
+    assert isinstance(app.config['repo'].client.session, CachedSession)
+
+    response = client.get('/', query_string={'plastron-cache-enabled': '1'})
+    assert response.status_code == 200
+    assert isinstance(app.config['repo'].client.session, CachedSession)
 
     response = client.get('/')
     assert response.status_code == 200
