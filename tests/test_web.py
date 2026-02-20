@@ -5,7 +5,7 @@ import pytest
 from requests import Session
 from requests_cache import BaseCache, CachedSession
 
-from solrizer.web import get_session, load_config_from_files
+from solrizer.web import get_session, load_config_from_files, get_repo
 
 
 def test_load_config_from_files(datadir):
@@ -90,23 +90,18 @@ def test_health_check(client):
     assert 'used_percent' in memory
 
 
-def test_session_before_request(client, app):
-    response = client.get('/', query_string={'plastron-cache-enabled': 'no'})
-    assert response.status_code == 200
-    assert isinstance(app.config['repo'].client.session, Session)
-
-    response = client.get('/', query_string={'plastron-cache-enabled': '0'})
-    assert response.status_code == 200
-    assert isinstance(app.config['repo'].client.session, Session)
-
-    response = client.get('/', query_string={'plastron-cache-enabled': 'yes'})
-    assert response.status_code == 200
-    assert isinstance(app.config['repo'].client.session, CachedSession)
-
-    response = client.get('/', query_string={'plastron-cache-enabled': '1'})
-    assert response.status_code == 200
-    assert isinstance(app.config['repo'].client.session, CachedSession)
-
-    response = client.get('/')
-    assert response.status_code == 200
-    assert isinstance(app.config['repo'].client.session, CachedSession)
+@pytest.mark.parametrize(
+    ('config', 'query_params', 'expected_session_class'),
+    [
+        ({}, {}, Session),
+        ({'PLASTRON_CACHE_ENABLED': False}, {}, Session),
+        ({'PLASTRON_CACHE_ENABLED': False}, {'plastron-cache-enabled': 'no'}, Session),
+        ({'PLASTRON_CACHE_ENABLED': False}, {'plastron-cache-enabled': 'yes'}, CachedSession),
+        ({'PLASTRON_CACHE_ENABLED': True}, {}, CachedSession),
+        ({'PLASTRON_CACHE_ENABLED': True}, {'plastron-cache-enabled': 'no'}, Session),
+        ({'PLASTRON_CACHE_ENABLED': True}, {'plastron-cache-enabled': 'yes'}, CachedSession),
+    ]
+)
+def test_get_repo(config, query_params, expected_session_class):
+    repo = get_repo({**config, 'FCREPO_ENDPOINT': 'http://localhost:8080/fcrepo/rest'}, query_params)
+    assert isinstance(repo.client.session, expected_session_class)
