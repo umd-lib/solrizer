@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import httpretty
 import pytest
@@ -23,12 +23,13 @@ def test_doc_no_uri(client):
     assert detail['details'] == 'No resource URL or path was provided as part of this request.'
 
 
-def test_doc_repository_error(app, client):
+@patch('solrizer.web.get_repo')
+def test_doc_repository_error(mock_get_repo, app, client):
     mock_repo = MagicMock(spec=Repository)
     mock_resource = MagicMock(spec=RepositoryResource)
     mock_repo.__getitem__.return_value = mock_resource
     mock_resource.read.side_effect = RepositoryError()
-    app.config['repo'] = mock_repo
+    mock_get_repo.return_value = mock_repo
     response = client.get('/doc?uri=http://example.com/fcrepo/foo')
     assert response.status_code == 404
     assert response.content_type == 'application/problem+json'
@@ -39,14 +40,15 @@ def test_doc_repository_error(app, client):
 
 
 @httpretty.activate()
-def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path, register_uri_for_reading):
+@patch('solrizer.web.get_repo')
+def test_doc_content_model_indexer_only(mock_get_repo, monkeypatch, client, datadir: Path, register_uri_for_reading):
+    mock_get_repo.return_value = Repository(client=Client(endpoint=Endpoint(url='http://example.com/fcrepo')))
     monkeypatch.setitem(client.application.config, "INDEXERS", {'__default__': ['content_model']})
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
-    client.application.config['repo'] = Repository(client=Client(endpoint=Endpoint(url='http://example.com/fcrepo')))
     response = client.get('/doc?uri=http://example.com/fcrepo/foo')
     assert response.status_code == 200
     assert response.mimetype == 'application/json'
@@ -56,13 +58,14 @@ def test_doc_content_model_indexer_only(monkeypatch, client, datadir: Path, regi
 
 
 @httpretty.activate()
-def test_doc_no_content_model(client, repo, register_uri_for_reading):
+@patch('solrizer.web.get_repo')
+def test_doc_no_content_model(mock_get_repo, client, repo, register_uri_for_reading):
+    mock_get_repo.return_value = repo
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body='',
     )
-    client.application.config['repo'] = repo
     response = client.get('/doc?uri=http://example.com/fcrepo/foo')
     assert response.status_code == 404
     assert response.mimetype == 'application/problem+json'
@@ -73,13 +76,14 @@ def test_doc_no_content_model(client, repo, register_uri_for_reading):
 
 
 @httpretty.activate()
-def test_doc_with_add_command(datadir, client, repo, register_uri_for_reading):
+@patch('solrizer.web.get_repo')
+def test_doc_with_add_command(mock_get_repo, datadir, client, repo, register_uri_for_reading):
+    mock_get_repo.return_value = repo
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
-    client.application.config['repo'] = repo
     response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=add')
     assert response.status_code == 200
     assert response.mimetype == 'application/json'
@@ -92,7 +96,9 @@ def test_doc_with_add_command(datadir, client, repo, register_uri_for_reading):
 
 
 @httpretty.activate()
-def test_doc_with_update_command(datadir, client, repo, register_uri_for_reading):
+@patch('solrizer.web.get_repo')
+def test_doc_with_update_command(mock_get_repo, datadir, client, repo, register_uri_for_reading):
+    mock_get_repo.return_value = repo
     register_uri_for_reading(
         uri='http://example.com/fcrepo/foo',
         content_type='application/n-triples',
@@ -111,7 +117,6 @@ def test_doc_with_update_command(datadir, client, repo, register_uri_for_reading
             },
         }),
     )
-    client.application.config['repo'] = repo
     client.application.config['SOLR_QUERY_ENDPOINT'] = 'http://solr.example.com/fcrepo/select'
     response = client.get('/doc?uri=http://example.com/fcrepo/foo&command=update')
     assert response.status_code == 200

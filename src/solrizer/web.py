@@ -124,17 +124,19 @@ from plastron.rdfmapping.resources import RDFResource
 from plastron.repo import Repository, RepositoryError, RepositoryResource
 from plastron.utils import envsubst
 from requests import Session
+from requests.auth import AuthBase
 from requests_cache import CachedSession, init_backend
 from requests_jwtauth import JWTSecretAuth
 from werkzeug.exceptions import InternalServerError
 
 from solrizer import __version__
 from solrizer.errors import (
+    ConfigurationError,
     NoResourceRequested,
     ProblemDetailError,
     ResourceNotAvailable,
     UnknownCommand,
-    problem_detail_response, ConfigurationError,
+    problem_detail_response,
 )
 from solrizer.indexers import IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
@@ -210,6 +212,16 @@ def load_config_from_files(config: MutableMapping):
                 raise RuntimeError(f'Config file "{file}" not found') from e
 
 
+def get_authenticator(config: Mapping[str, Any]) -> AuthBase | None:
+    if 'FCREPO_JWT_SECRET' not in config:
+        return None
+
+    return JWTSecretAuth(
+        secret=config['FCREPO_JWT_SECRET'],
+        claims={'sub': 'solrizer', 'iss': 'solrizer', 'role': 'fedoraAdmin'},
+    )
+
+
 def get_session(config: Mapping[str, Any]) -> Session:
     """Creates a [Session](https://requests.readthedocs.io/en/latest/api/#request-sessions)
     or [CachedSession](https://requests-cache.readthedocs.io/en/stable/modules/requests_cache.session.html)
@@ -242,20 +254,36 @@ def get_session(config: Mapping[str, Any]) -> Session:
         return Session()
 
 
+def get_client(config: Mapping[str, Any]) -> Client:
+    try:
+        return Client(
+            endpoint=Endpoint(config['FCREPO_ENDPOINT']),
+            auth=get_authenticator(config),
+            session=get_session(config),
+        )
+    except KeyError as e:
+        logger.error(f'Configuration is missing a required key: {e}')
+        raise ConfigurationError() from e
+
+
+def get_repo(config: Mapping[str, Any], args: Mapping[str, Any]) -> Repository:
+    plastron_cache_enabled = args.get('plastron-cache-enabled')
+    if plastron_cache_enabled == 'no' or plastron_cache_enabled == '0':
+        client = get_client({**config, 'PLASTRON_CACHE_ENABLED': False})
+    elif plastron_cache_enabled == 'yes' or plastron_cache_enabled == '1':
+        client = get_client({**config, 'PLASTRON_CACHE_ENABLED': True})
+    else:
+        client = get_client(config)
+
+    return Repository(client=client)
+
+
 def create_app():
     start_time = datetime.now()
     app = Flask(__name__)
     app.config.from_prefixed_env('SOLRIZER')
     load_config_from_files(app.config)
 
-    client = Client(
-        endpoint=Endpoint(app.config['FCREPO_ENDPOINT']),
-        auth=JWTSecretAuth(
-            secret=app.config['FCREPO_JWT_SECRET'], claims={'sub': 'solrizer', 'iss': 'solrizer', 'role': 'fedoraAdmin'}
-        ),
-        session=get_session(app.config),
-    )
-    app.config['repo'] = Repository(client=client)
     app.config['INDEXERS'] = app.config.get('INDEXERS', {})
     if '__default__' not in app.config['INDEXERS']:
         app.config['INDEXERS']['__default__'] = ['content_model']
@@ -322,13 +350,15 @@ def create_app():
             app.logger.error('The "update" command requires SOLRIZER_SOLR_QUERY_ENDPOINT to be set')
             raise ConfigurationError()
 
+        repo = get_repo(app.config, request.args)
+
         with Timer(
             name=f'create Solr document for {uri}',
             text='Time to {name}: {milliseconds:.3f} ms',
             logger=app.logger.info,
         ):
             try:
-                resource: RepositoryResource = app.config['repo'][uri].read()
+                resource: RepositoryResource = repo[uri].read()
             except RepositoryError as e:
                 raise ResourceNotAvailable(uri=uri) from e
 
@@ -342,7 +372,7 @@ def create_app():
             logger.info(f'Model class for {uri} is {model_class.__name__}')
 
             ctx = IndexerContext(
-                repo=app.config['repo'],
+                repo=repo,
                 resource=resource,
                 model_class=model_class,
                 doc={'id': uri},
