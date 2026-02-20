@@ -134,9 +134,10 @@ from solrizer.errors import (
     ProblemDetailError,
     ResourceNotAvailable,
     UnknownCommand,
+    BadIndexersParameter,
     problem_detail_response, ConfigurationError,
 )
-from solrizer.indexers import IndexerContext, IndexerError
+from solrizer.indexers import AVAILABLE_INDEXERS, IndexerContext, IndexerError
 from solrizer.solr import create_atomic_update
 
 debug_mode = int(os.environ.get('FLASK_DEBUG', '0'))
@@ -242,6 +243,53 @@ def get_session(config: Mapping[str, Any]) -> Session:
         return Session()
 
 
+def parse_indexers_param(indexers_param: str | None) -> list[str] | None:
+    """Parse the `indexers` query parameter of comma-separated indexer
+    names returning a list of indexer names.
+
+    If `indexers_param` is None, returns None, indicating that configured
+    indexers should be used instead.
+
+    Args:
+        indexers_param: The raw value of the `indexers` query parameter,
+            or None if the parameter was not supplied.
+
+    Returns:
+        A list of validated indexer names, or None if no `indexers`
+        parameter was provided.
+
+    Raises:
+        BadIndexersParameter: When any of the following occur:
+
+            * The `indexers_param` parameter is an empty string
+            * No valid indexer names are found after parsing
+            * An identifier name is not a registered indexer
+            * The list contains duplicate names
+    """
+    if indexers_param is None:
+        # indexers parameter is optional, so just return None
+        return None
+
+    # Split on comma, filter out empty strings
+    indexers = [indexer.strip() for indexer in indexers_param.split(',') if indexer.strip()]
+
+    if not indexers:
+        # No indexers provided, throw error
+        raise BadIndexersParameter(f'No indexers found in "{indexers_param}"')
+
+    # Check for invalid and duplicate indexers
+    known_indexers = AVAILABLE_INDEXERS.names
+
+    for indexer in indexers:
+        if indexer not in known_indexers:
+            raise BadIndexersParameter(value=f'"{indexer}" is not a recognized indexer.')
+
+    if len(indexers) != len(set(indexers)):
+        raise BadIndexersParameter(value=f'"{indexers_param}" has duplicate indexers.')
+
+    return indexers
+
+
 def create_app():
     start_time = datetime.now()
     app = Flask(__name__)
@@ -322,6 +370,8 @@ def create_app():
             app.logger.error('The "update" command requires SOLRIZER_SOLR_QUERY_ENDPOINT to be set')
             raise ConfigurationError()
 
+        indexers = parse_indexers_param(request.args.get('indexers', None))
+
         with Timer(
             name=f'create Solr document for {uri}',
             text='Time to {name}: {milliseconds:.3f} ms',
@@ -348,11 +398,15 @@ def create_app():
                 doc={'id': uri},
                 config=app.config,
             )
-            try:
-                indexers = app.config['INDEXERS'][model_class.__name__]
-            except KeyError as e:
-                logger.info(f'No specific indexers configured for the {e} model, using defaults')
-                indexers = app.config['INDEXERS']['__default__']
+
+            # Determine indexers using the model, unless already specified in
+            # the request
+            if not indexers:
+                try:
+                    indexers = app.config['INDEXERS'][model_class.__name__]
+                except KeyError as e:
+                    logger.info(f'No specific indexers configured for the {e} model, using defaults')
+                    indexers = app.config['INDEXERS']['__default__']
 
             logger.info(f'Running indexers: {indexers}')
             try:

@@ -78,6 +78,28 @@ class UnknownCommand(ProblemDetailError, BadRequest):
     description = '"{value}" is not a recognized value for the "command" parameter.'
 
 
+class BadIndexersParameter(ProblemDetailError, BadRequest):
+    """Value provided for the "indexers" query parameter is invalid.
+
+    Among the possibilities:
+
+      * Empty value
+      * Same indexer listed more than once
+      * Unrecognized indexer
+
+    The HTTP status is `400 Bad Request`.
+
+    Must provide a `value` parameter to the constructor describing why the
+    parameter is invalid.
+
+    ```python
+    raise BadIndexersParameter(value='foo')
+    ```
+    """
+    name = 'Bad indexers parameter'
+    description = '{value}'
+
+
 class ConfigurationError(ProblemDetailError, InternalServerError):
     """The server is incorrectly configured.
 
