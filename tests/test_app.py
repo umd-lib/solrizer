@@ -235,7 +235,9 @@ def test_doc_with_duplicate_indexers(client):
 
 
 @httpretty.activate()
-def test_doc_with_single_indexer(datadir, client, repo, register_uri_for_reading, caplog):
+@patch('solrizer.web.get_repo')
+def test_doc_with_single_indexer(mock_get_repo, datadir, client, repo, register_uri_for_reading, caplog):
+    mock_get_repo.return_value = repo
     caplog.set_level(logging.INFO)
 
     register_uri_for_reading(
@@ -243,7 +245,6 @@ def test_doc_with_single_indexer(datadir, client, repo, register_uri_for_reading
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
-    client.application.config['repo'] = repo
 
     response = client.get('/doc?uri=http://example.com/fcrepo/foo&indexers=content_model')
 
@@ -257,7 +258,9 @@ def test_doc_with_single_indexer(datadir, client, repo, register_uri_for_reading
 
 
 @httpretty.activate()
-def test_doc_with_multiple_indexers(datadir, client, repo, register_uri_for_reading, caplog):
+@patch('solrizer.web.get_repo')
+def test_doc_with_multiple_indexers(mock_get_repo, datadir, client, repo, register_uri_for_reading, caplog):
+    mock_get_repo.return_value = repo
     caplog.set_level(logging.INFO)
 
     register_uri_for_reading(
@@ -265,7 +268,6 @@ def test_doc_with_multiple_indexers(datadir, client, repo, register_uri_for_read
         content_type='application/n-triples',
         body=(datadir / 'item.nt').read_text(),
     )
-    client.application.config['repo'] = repo
 
     response = client.get('/doc?uri=http://example.com/fcrepo/foo&indexers=content_model,facets')
 
