@@ -15,6 +15,10 @@ jobs:
         with:
           python-version: '3.12' 
       - run: pip install .
+      - run: |
+          pip install git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-client \
+            git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-repo \
+            git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-cli
       - run: pip install pdoc
       - run: pdoc --output-dir apidocs --docformat restructuredtext ./src/solrizer/__init__.py
       - uses: actions/upload-pages-artifact@v3
