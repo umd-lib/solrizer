@@ -22,12 +22,12 @@ pipeline {
   //    be the default recipients of Jenkins emails.
 
   agent {
-    docker {
-      image 'python:3.12-slim'
+    dockerfile {
+      filename 'Dockerfile.ci'
       // Pass JENKINS_EMAIL_SUBJECT_PREFIX and JENKINS_DEFAULT_EMAIL_RECIPIENTS
       // into container as "env" arguments, so they are available inside the
       // Docker container
-      args '-u root --env JENKINS_DEFAULT_EMAIL_RECIPIENTS=$JENKINS_DEFAULT_EMAIL_RECIPIENTS --env JENKINS_EMAIL_SUBJECT_PREFIX=$JENKINS_EMAIL_SUBJECT_PREFIX'
+      args '--env JENKINS_DEFAULT_EMAIL_RECIPIENTS=$JENKINS_DEFAULT_EMAIL_RECIPIENTS --env JENKINS_EMAIL_SUBJECT_PREFIX=$JENKINS_EMAIL_SUBJECT_PREFIX'
     }
   }
 
@@ -129,25 +129,21 @@ pipeline {
     }
     stage('static-analysis') {
       steps {
-        // Run the linters (ruff and pycodestyle) and send output to stdout
-        // for "Record compiler warnings and static analysis results"
+        // Run the "ruff" linter and send output to stdout for
+        // the "Record compiler warnings and static analysis results"
         // post-build action.
         //
-        // For "ruff", using `--exit-zero` to return a successs
-        // exit code even if there are lint violations detected.
-        //
-        // For "pycodestyle", using "|| true" to ignore the exit code (so
-        // the script doesn't fail if lint violations are detected)
+        // Using `--exit-zero` argument to "ruff", so that a success exit code
+        // is returned even if there are lint violations detected.
         sh '''
           . .venv/bin/activate
           ruff check --output-format pylint --exit-zero
-          pycodestyle --format=pylint || true
         '''
       }
       post {
         always {
-          // Collect pycodestyle reports
-          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff/pycodestyle check')],
+          // Collect static analysis reports
+          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff check')],
                        qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'UNSTABLE']]
                        )
 
@@ -167,14 +163,6 @@ pipeline {
 
   post {
     always {
-      // Change permissions of the workspace directory to world-writeable
-      // so Jenkins can delete it. This is needed, because files may be
-      // written to the directory from the Docker container as the "root"
-      // user, which Jenkins would not otherwise be able to clean up.
-      sh '''
-        chmod --recursive 777 $WORKSPACE
-      '''
-
       cleanWs()
 
       emailext to: "$DEFAULT_RECIPIENTS",
