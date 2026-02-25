@@ -22,12 +22,12 @@ pipeline {
   //    be the default recipients of Jenkins emails.
 
   agent {
-    docker {
-      image 'python:3.12-slim'
+    dockerfile {
+      filename 'Dockerfile.ci'
       // Pass JENKINS_EMAIL_SUBJECT_PREFIX and JENKINS_DEFAULT_EMAIL_RECIPIENTS
       // into container as "env" arguments, so they are available inside the
       // Docker container
-      args '-u root --env JENKINS_DEFAULT_EMAIL_RECIPIENTS=$JENKINS_DEFAULT_EMAIL_RECIPIENTS --env JENKINS_EMAIL_SUBJECT_PREFIX=$JENKINS_EMAIL_SUBJECT_PREFIX'
+      args '--env JENKINS_DEFAULT_EMAIL_RECIPIENTS=$JENKINS_DEFAULT_EMAIL_RECIPIENTS --env JENKINS_EMAIL_SUBJECT_PREFIX=$JENKINS_EMAIL_SUBJECT_PREFIX'
     }
   }
 
@@ -167,14 +167,6 @@ pipeline {
 
   post {
     always {
-      // Change permissions of the workspace directory to world-writeable
-      // so Jenkins can delete it. This is needed, because files may be
-      // written to the directory from the Docker container as the "root"
-      // user, which Jenkins would not otherwise be able to clean up.
-      sh '''
-        chmod --recursive 777 $WORKSPACE
-      '''
-
       cleanWs()
 
       emailext to: "$DEFAULT_RECIPIENTS",
