@@ -129,25 +129,21 @@ pipeline {
     }
     stage('static-analysis') {
       steps {
-        // Run the linters (ruff and pycodestyle) and send output to stdout
-        // for "Record compiler warnings and static analysis results"
+        // Run the "ruff" linter and send output to stdout for
+        // the "Record compiler warnings and static analysis results"
         // post-build action.
         //
-        // For "ruff", using `--exit-zero` to return a successs
-        // exit code even if there are lint violations detected.
-        //
-        // For "pycodestyle", using "|| true" to ignore the exit code (so
-        // the script doesn't fail if lint violations are detected)
+        // Using `--exit-zero` argument to "ruff", so that a success exit code
+        // is returned even if there are lint violations detected.
         sh '''
           . .venv/bin/activate
           ruff check --output-format pylint --exit-zero
-          pycodestyle --format=pylint || true
         '''
       }
       post {
         always {
-          // Collect pycodestyle reports
-          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff/pycodestyle check')],
+          // Collect static analysis reports
+          recordIssues(tools: [pyLint(reportEncoding: 'UTF-8', name: 'ruff check')],
                        qualityGates: [[threshold: 1, type: 'TOTAL', criticality: 'UNSTABLE']]
                        )
 
