@@ -13,6 +13,11 @@ Configuration of the application is handled by a combination of
 #### fcrepo Repository
 
 * **`SOLRIZER_FCREPO_ENDPOINT`** URL of the fcrepo repository.
+* **`SOLRIZER_FCREPO_ORIGIN`** The actual URL to connect to the
+  fcrepo repository, if it is different from the
+  `SOLRIZER_FCREPO_ENDPOINT`. This setting triggers the use of the
+  `plastron.client.proxied.ProxyClient` class, instead of the
+  default `plastron.client.Client` class.
 * **`SOLRIZER_FCREPO_JWT_SECRET`** Shared secret used to generate
   access tokens to connect to the fcrepo repository.
 
