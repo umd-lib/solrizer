@@ -40,6 +40,19 @@ Normalized to UTC, with the "Z" notation for the time zone.
 |-----------------------------|------------------------|
 | `2024-11-18T11:49:32-05:00` | `2024-11-18T16:49:32Z` |
 
+### Seasons (Without Hemisphere)
+
+Assumes the Northern Hemisphere. See the
+[Seasons (With Hemisphere)](#seasons-with-hemisphere) for a note about 
+year-wrapping and winter.
+
+| EDTF      | Solr DateRange               | Season |
+|-----------|------------------------------|--------|
+| `2001-21` | `[2001-03-01 TO 2001-05-31]` | spring |
+| `2001-22` | `[2001-06-01 TO 2001-08-31]` | summer |
+| `2001-23` | `[2001-09-01 TO 2001-11-30]` | autumn |
+| `2001-24` | `[2001-12-01 TO 2001-12-31]` | winter |
+
 ### Seasons (With Hemisphere)
 
 Note about year-wrapping (taken from a comment in 
