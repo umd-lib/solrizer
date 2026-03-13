@@ -107,6 +107,19 @@ Python data structures that are deserialized from them. See the
   of indexer names to settings for that particular indexer. See the
   individual indexer modules for a description of what setting they support.
 
+### Query Parameters
+
+The `/doc` endpoint accepts the following query parameters:
+
+* **uri** (*Required*) URI of the Fedora resource to process.
+* **indexers** (*Optional*) Comma-separated list of indexers to enable for
+  this request. This list overrides any indexers configured via the
+  `SOLRIZER_INDEXERS` or `SOLRIZER_INDEXERS_FILE` environment variable.
+* **plastron-cache-enabled** (*Optional*) Enable or disable the Plastron
+  client cache. This setting overrides the `SOLRIZER_PLASTRON_CACHE_ENABLED`
+  environment variable for this request. Use `yes` or `1` to enable, and
+  `no` or `0` to disable.
+
 ---
 """
 
@@ -240,26 +253,17 @@ def get_repo(config: Mapping[str, Any], args: Mapping[str, Any]) -> Repository:
 
 def parse_indexers_param(indexers_param: str | None) -> list[str] | None:
     """Parse the `indexers` query parameter of comma-separated indexer
-    names returning a list of indexer names.
+    names returning a list of validated indexer names.
 
-    If `indexers_param` is None, returns None, indicating that configured
+    If `indexers_param` is `None`, returns `None`, indicating that configured
     indexers should be used instead.
 
-    Args:
-        indexers_param: The raw value of the `indexers` query parameter,
-            or None if the parameter was not supplied.
+    Raises `BadIndexersParameter` when any of the following occur:
 
-    Returns:
-        A list of validated indexer names, or None if no `indexers`
-        parameter was provided.
-
-    Raises:
-        BadIndexersParameter: When any of the following occur:
-
-            * The `indexers_param` parameter is an empty string
-            * No valid indexer names are found after parsing
-            * An identifier name is not a registered indexer
-            * The list contains duplicate names
+    * The `indexers_param` parameter is an empty string
+    * No valid indexer names are found after parsing
+    * An identifier name is not a registered indexer
+    * The list contains duplicate names
     """
     if indexers_param is None:
         # indexers parameter is optional, so just return None
