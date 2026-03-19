@@ -68,6 +68,11 @@ INVALID_EDTF_STRINGS = [
     'FAKE',
 ]
 
+EDTF_PRECISIONS = get_param_set_from_markdown(
+    file=(DOCS_DIR / 'EDTFtoDateRange.md'),
+    columns=['EDTF', 'Precision'],
+)
+
 
 @pytest.fixture
 def context_with_date():
@@ -190,43 +195,7 @@ def test_unsupported_edtf_returns_nothing(edtf_value, context_with_date):
 
 @pytest.mark.parametrize(
     ('edtf_value', 'expected_precision'),
-    [
-        ('2026-03-12', 6),
-        ('2026-03', 5),
-        ('2026', 4),
-        ('202X', 3),
-        ('20XX', 2),
-        ('2XXX', 1),
-        ('2026-03-01/2026-03-10', 6),
-        ('2026-04/2026-04', 5),
-        ('2026/2028', 4),
-        ('198X/199X', 3),
-        ('19XX/20XX', 2),
-        ('1XXX/2XXX', 1),
-        ('2026-03/2026-03-10', 5),
-        ('2026/2026-03-10', 4),
-        ('202X/2026-03-10', 3),
-        ('20XX/2026-03-10', 2),
-        ('2XXX/2026-03-10', 1),
-        ('1990-01-01/1999-02-01', 6),
-        ('1990-01-01/1999-02', 5),
-        ('1990-01-01/1999', 4),
-        ('1990-01-01/199X', 3),
-        ('1990-01-01/19XX', 2),
-        ('1990-01-01/1XXX', 1),
-        ('2026-03-12/', 6),
-        ('2026-03/', 5),
-        ('2026/', 4),
-        ('[2026-03-12..]', 6),
-        ('[2026-03..]', 5),
-        ('[2026..]', 4),
-        ('/2026-03-12', 6),
-        ('/2026-03', 5),
-        ('/2026', 4),
-        ('[..2026-03-12]', 6),
-        ('[..2026-03]', 5),
-        ('[..2026]', 4),
-    ]
+    EDTF_PRECISIONS,
 )
 def test_get_precision(edtf_value, expected_precision):
     assert get_precision(parse_edtf(edtf_value)) == expected_precision
