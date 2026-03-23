@@ -13,6 +13,7 @@ Output field patterns:
 | `object__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
 | `object__{attr}__dt_is_approximate`               | `bool`      | boolean        |
 | `object__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
+| `object__{attr}__dt_precision`                    | `int`       | integer        |
 """
 
 import logging
@@ -20,8 +21,7 @@ from datetime import datetime
 
 from edtf import (parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, UncertainOrApproximate, Interval,
                   Level2Interval, Season, Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime,
-                  PartialUncertainOrApproximate)
-
+                  PartialUncertainOrApproximate, OneOfASet, Consecutives)
 from solrizer.indexers import IndexerContext, SolrFields
 from solrizer.indexers.utils import solr_datetime
 
@@ -29,6 +29,18 @@ logger = logging.getLogger(__name__)
 
 YMD_STRING = '{0:04d}-{1:02d}-{2:02d}'
 """Formatting string used by `strict_range()` to generate `YYYY-MM-DD` strings."""
+
+PRECISION_VALUES = {
+    'day': 6,
+    'month': 5,
+    'year': 4,
+    'decade': 3,
+    'century': 2,
+    'millennium': 1,
+    # the python-edtf module spells "millennium" with only one "n"
+    'millenium': 1,
+}
+"""Mapping of precision-level names to numerical values for sorting."""
 
 
 def date_fields(ctx: IndexerContext) -> SolrFields:
@@ -54,7 +66,8 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
                 name + '__dt': solr_date(edtf),
                 name + '__dt_is_uncertain': edtf.is_uncertain,
                 name + '__dt_is_approximate': edtf.is_approximate,
-                name + '__dt_is_uncertain_and_approximate': edtf.is_uncertain_and_approximate
+                name + '__dt_is_uncertain_and_approximate': edtf.is_uncertain_and_approximate,
+                name + '__dt_precision__int': get_precision(edtf),
             }
         except UnsupportedEDTFValue as e:
             logger.warning(f'Cannot convert "{edtf_string}" in field {edtf_name} to a Solr date: {e.reason}')
@@ -64,7 +77,7 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
         return {}
 
 
-def strict_range(edtf: Date) -> str:
+def strict_range(edtf: EDTFObject) -> str:
     """Format the given EDTF date as a Solr date range, using the strict
     upper and lower bounds of the EDTF date."""
 
@@ -120,6 +133,39 @@ def solr_date(edtf_value: str | EDTFObject, partial_ua_method: str = 'lower_stri
             return str(edtf)
         case DateAndTime():
             return solr_datetime(str(edtf))
+        case _:
+            raise UnsupportedEDTFValue(edtf=edtf)
+
+
+def get_precision(edtf: EDTFObject) -> int | None:
+    """Determine the precision of the given EDTF object and return the
+    equivalent numerical value taken from `PRECISION_VALUES`."""
+    match edtf:
+        case UncertainOrApproximate():
+            return get_precision(edtf.date)
+        case OneOfASet():
+            precisions = []
+            for obj in edtf.objects:
+                precisions.extend(_get_upper_and_lower_precisions(obj))
+            return min(precisions) if precisions else None
+        case Interval():
+            precisions = _get_upper_and_lower_precisions(edtf)
+            return min(precisions) if precisions else None
+        case Season():
+            # TODO: what should season precision be?
+            return None
+        case Date() | UnspecifiedIntervalSection():
+            return PRECISION_VALUES[edtf.precision]
+        case _:
+            return None
+
+
+def _get_upper_and_lower_precisions(edtf: Interval | Consecutives):
+    precisions = [
+        get_precision(edtf.lower),
+        get_precision(edtf.upper),
+    ]
+    return [p for p in precisions if p is not None]
 
 
 class UnsupportedEDTFValue(ValueError):
