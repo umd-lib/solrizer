@@ -4,6 +4,7 @@ properties they are based on for the different content models.
 
 | Faceter Class             | Facet                 | Item                        | Letter                   | Poster                   | Issue                    |
 |---------------------------|-----------------------|-----------------------------|--------------------------|--------------------------|--------------------------|
+| `AdminSetFacet`           | `admin_set`           | N/A⁵                        | N/A⁵                     | N/A⁵                     | N/A⁵                     |
 | `ArchivalCollectionFacet` | `archival_collection` | `archival_collection.label` | `part_of.label`          | `part_of`                | —                        |
 | `ContributorFacet`        | `contributor`         | `contributor.label`         | —                        | —                        | —                        |
 | `CensorshipFacet`         | `censorship`          | `description.label`         | —                        | —                        | —                        |
@@ -33,6 +34,9 @@ rightsstatement.org URL to a vocab.lib.umd.edu term and its label.
 ⁴ For the OCR facet, the value is "Has OCR" if the object or any of its members
 have an extracted text file. If no extracted text files are found, the facet is
 omitted.
+
+⁵ For the admin set facet, the value is determined by following the `member_of`
+property of the object and using the title of the linked resource, if available.
 """  # noqa: E501
 
 import logging

@@ -9,7 +9,8 @@ from httpretty import httpretty
 from plastron.client import Endpoint, Client
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
-from plastron.repo.pcdm import PCDMObjectResource, ProxyIterator
+from plastron.repo.aggregation import ProxiedResourceIterator
+from plastron.repo.pcdm import PCDMObjectResource
 from rdflib import Graph, URIRef
 
 from solrizer.indexers import SolrFields, IndexerContext
@@ -48,15 +49,20 @@ def create_mock_repo():
         paths: Mapping[str, ContentModeledResource | tuple[ContentModeledResource, type[RepositoryResource]]] = None,
         repo_url: str = 'http://example.com/fcrepo',
     ) -> Repository:
+        uri_mapping = {}
+
         def _lookup_path(key):
             if isinstance(key, slice):
                 return str(key.start).replace(repo_url, '')
             else:
                 return str(key).replace(repo_url, '')
 
-        uri_mapping = {}
+        def _get_resource(key):
+            return uri_mapping[URIRef(repo_url + _lookup_path(key))]
+
         mock_repo = MagicMock(spec=Repository)
-        mock_repo.__getitem__ = lambda self, key: uri_mapping[URIRef(repo_url + _lookup_path(key))]
+        mock_repo.__getitem__.side_effect = _get_resource
+        mock_repo.get_resource.side_effect = _get_resource
         mock_repo.endpoint = Endpoint(repo_url)
         for path, obj_def in (paths or {}).items():
             if isinstance(obj_def, tuple):
@@ -72,7 +78,7 @@ def create_mock_repo():
             resource.describe.return_value = obj
             resource.path = path
             resource._graph = obj.graph
-            resource.get_sequence.return_value = ProxyIterator(resource)
+            resource.get_sequence.return_value = ProxiedResourceIterator(resource)
             uri_mapping[URIRef(repo_url + path)] = resource
 
         return mock_repo

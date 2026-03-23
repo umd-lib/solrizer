@@ -1,9 +1,17 @@
 # EDTF to Date Range Translation
 
 This page documents by example the conversions between EDTF date and Solr 
-[DateRange] values that the Solrizer [dates indexer] performs. These 
-examples are taken from the [unit tests](../tests/indexers/test_dates.py) 
-for the dates indexer.
+[DateRange] values that the Solrizer [dates indexer] performs.
+
+This Markdown file is used directly by the 
+[unit tests](../tests/indexers/test_dates.py) for the dates indexer. To 
+read this Markdown data, the unit tests use the [markdown-to-data] package.
+All the tables that have both an `EDTF` and `Solr DateRange` column are 
+consider as data sources. Each row in the table is converted to a tuple 
+that is passed to the unit test to check that the `EDTF` value gets 
+converted to the expected `Solr DateRange`.
+
+Extra columns are ignored by the unit test.
 
 ## Supported
 
@@ -31,6 +39,19 @@ Normalized to UTC, with the "Z" notation for the time zone.
 | EDTF                        | Solr DateRange         |
 |-----------------------------|------------------------|
 | `2024-11-18T11:49:32-05:00` | `2024-11-18T16:49:32Z` |
+
+### Seasons (Without Hemisphere)
+
+Assumes the Northern Hemisphere. See the
+[Seasons (With Hemisphere)](#seasons-with-hemisphere) for a note about 
+year-wrapping and winter.
+
+| EDTF      | Solr DateRange               | Season |
+|-----------|------------------------------|--------|
+| `2001-21` | `[2001-03-01 TO 2001-05-31]` | spring |
+| `2001-22` | `[2001-06-01 TO 2001-08-31]` | summer |
+| `2001-23` | `[2001-09-01 TO 2001-11-30]` | autumn |
+| `2001-24` | `[2001-12-01 TO 2001-12-31]` | winter |
 
 ### Seasons (With Hemisphere)
 
@@ -111,6 +132,84 @@ These are supported, as long as they are between -9999 and 9999.
 | `Y-5E2` | `[-500-01-01 TO -500-12-31]`   |
 | `Y-6E1` | `[-060-01-01 TO -060-12-31]`   |
 
+### Qualified Dates
+
+| EDTF    | Solr DateRange | Uncertain? | Approximate? | Uncertain and Approximate? | Precision |
+|---------|----------------|------------|--------------|----------------------------|-----------|
+| `2024?` | `2024`         | True       |              |                            | 4         |
+| `2024~` | `2024`         |            | x            |                            | 4         |
+| `2024%` | `2024`         |            |              | x                          | 4         |
+
+### Qualified Intervals
+
+| EDTF          | Solr DateRange   | Uncertain? | Approximate? | Uncertain and Approximate? | Precision |
+|---------------|------------------|------------|--------------|----------------------------|-----------|
+| `2024?/2025`  | `[2024 TO 2025]` | x          |              |                            | 4         |
+| `2024~/2025`  | `[2024 TO 2025]` |            | x            |                            | 4         |
+| `2024%/2025`  | `[2024 TO 2025]` |            |              | x                          | 4         |
+| `2024?/2025?` | `[2024 TO 2025]` | x          |              |                            | 4         |
+| `2024~/2025~` | `[2024 TO 2025]` |            | x            |                            | 4         |
+| `2024%/2025%` | `[2024 TO 2025]` |            |              | x                          | 4         |
+| `2024/2025?`  | `[2024 TO 2025]` | x          |              |                            | 4         |
+| `2024/2025~`  | `[2024 TO 2025]` |            | x            |                            | 4         |
+| `2024/2025%`  | `[2024 TO 2025]` |            |              | x                          | 4         |
+| `2024?/2025~` | `[2024 TO 2025]` | x          | x            |                            | 4         |
+| `2024~/2025?` | `[2024 TO 2025]` | x          | x            |                            | 4         |
+| `2024?/2025%` | `[2024 TO 2025]` | x          |              | x                          | 4         |
+| `2024~/2025%` | `[2024 TO 2025]` |            | x            | x                          | 4         |
+
+### Qualified Individual Components
+
+| EDTF               | Solr DateRange         | Uncertain? | Approximate? | Uncertain and Approximate? | Precision |
+|--------------------|------------------------|------------|--------------|----------------------------|-----------|
+| `~1945/1959`       | `[1945-01-01 TO 1959]` |            | x            |                            | 4         |
+| `1945/~1959`       | `[1945 TO 1959-12-31]` |            | x            |                            | 4         |
+| `1945-~06/1959`    | `[1945-06-01 TO 1959]` |            | x            |                            | 4         |
+| `1945/1959~-06`    | `[1945 TO 1959-06-30]` |            | x            |                            | 4         |
+| `1945-06~-15/1959` | `[1945-06-15 TO 1959]` |            | x            |                            | 4         |
+| `1945/1959-06-~15` | `[1945 TO 1959-06-15]` |            | x            |                            | 4         |
+
+
+## Precisions
+
+| EDTF                    | Precision |
+|-------------------------|-----------|
+| `2026-03-12`            | 6         |
+| `2026-03`               | 5         |
+| `2026`                  | 4         |
+| `202X`                  | 3         |
+| `20XX`                  | 2         |
+| `2XXX`                  | 1         |
+| `2026-03-01/2026-03-10` | 6         |
+| `2026-04/2026-04`       | 5         |
+| `2026/2028`             | 4         |
+| `198X/199X`             | 3         |
+| `19XX/20XX`             | 2         |
+| `1XXX/2XXX`             | 1         |
+| `2026-03/2026-03-10`    | 5         |
+| `2026/2026-03-10`       | 4         |
+| `202X/2026-03-10`       | 3         |
+| `20XX/2026-03-10`       | 2         |
+| `2XXX/2026-03-10`       | 1         |
+| `1990-01-01/1999-02-01` | 6         |
+| `1990-01-01/1999-02`    | 5         |
+| `1990-01-01/1999`       | 4         |
+| `1990-01-01/199X`       | 3         |
+| `1990-01-01/19XX`       | 2         |
+| `1990-01-01/1XXX`       | 1         |
+| `2026-03-12/`           | 6         |
+| `2026-03/`              | 5         |
+| `2026/`                 | 4         |
+| `[2026-03-12..]`        | 6         |
+| `[2026-03..]`           | 5         |
+| `[2026..]`              | 4         |
+| `/2026-03-12`           | 6         |
+| `/2026-03`              | 5         |
+| `/2026`                 | 4         |
+| `[..2026-03-12]`        | 6         |
+| `[..2026-03]`           | 5         |
+| `[..2026]`              | 4         |
+
 ## Not Supported
 
 These values, while valid EDTF, cannot be converted to Solr DateRange 
@@ -145,4 +244,5 @@ e.g., `{1966,1979,1983}`
 
 [DateRange]: https://solr.apache.org/guide/solr/9_6/indexing-guide/date-formatting-math.html
 [dates indexer]: https://umd-lib.github.io/solrizer/solrizer/indexers/dates.html
+[markdown-to-data]: https://pypi.org/project/markdown-to-data/
 [edtf.appsettings]: https://github.com/ixc/python-edtf/blob/main/edtf/appsettings.py#L15-L28

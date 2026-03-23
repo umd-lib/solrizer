@@ -1,18 +1,18 @@
 [project]
 name = "solrizer"
-version = "1.3.2"
+version = "1.4.0"
 dependencies = [
     "beautifulsoup4",
     "codetiming",
+    "configurenv",
     "edtf",
     "flask",
     "jq",
     "langcodes",
-    "plastron-client>=4.6",
+    "plastron-client>=4.7.0",
     "plastron-models>=4.6.2",
     "plastron-rdf>=4.5.1",
-    "plastron-repo>=4.6",
-    "plastron-utils>=4.5.1",
+    "plastron-repo>=4.7.0",
     "psutil",
     "pyyaml",
     "python-dotenv",
@@ -36,6 +36,7 @@ redis = [
 ]
 test = [
     "httpretty",
+    "markdown-to-data",
     "pytest",
     "pytest-cov",
     "pytest-datadir",
@@ -87,6 +88,7 @@ filterwarnings = [
     'ignore:ConjunctiveGraph is deprecated:DeprecationWarning',
     "ignore:The 'strip_cdata' option:DeprecationWarning",
     "ignore:distutils Version classes are deprecated:DeprecationWarning",
+    "ignore:'\\w+' (argument is )?deprecated:DeprecationWarning",
 ]
 addopts = "--doctest-modules"
 

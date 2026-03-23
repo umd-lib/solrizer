@@ -105,11 +105,6 @@ pipeline {
 
           # install patched version of python-edtf (see https://umd-dit.atlassian.net/browse/LIBFCREPO-1633)
           pip install --force-reinstall git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
-          # install latest plastron-client
-          pip install \
-              git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-client \
-              git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-repo \
-              git+https://github.com/umd-lib/plastron.git@release/4.7#subdirectory=plastron-cli
         '''
       }
     }
