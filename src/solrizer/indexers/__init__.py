@@ -41,7 +41,7 @@ from typing import Any
 from plastron.models import ContentModeledResource
 from plastron.repo import RepositoryResource, Repository
 
-type SolrFields = dict[str, str | int | list | dict]
+type SolrFields = dict[str, str | int | list | dict | None]
 """Type alias for Solr index document dictionaries."""
 
 AVAILABLE_INDEXERS = importlib.metadata.entry_points(group='solrizer_indexers')

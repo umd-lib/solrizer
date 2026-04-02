@@ -46,11 +46,15 @@ PRECISION_VALUES = {
 def date_fields(ctx: IndexerContext) -> SolrFields:
     """For any EDTF field in the index document (i.e., one whose name ends
     with `__edtf`) creates a corresponding `__dt` field with a value that
-    is parseable by Solr as a date or date range. Populates three boolean
-    flag fields with the suffixes `__dt_is_uncertain`, `__dt_is_approximate`,
-    and `__dt_is_uncertain_and_approximate` that indicate whether the
-    EDTF string had the markers for uncertainty (`?`), approximation (`~`),
-    or both (`%`).
+    is parseable by Solr as a date or date range. Also, populates four other
+    fields:
+
+    * three boolean flag fields with the suffixes `__dt_is_uncertain`,
+      `__dt_is_approximate`,and `__dt_is_uncertain_and_approximate` that
+      indicate whether the EDTF string had the markers for uncertainty (`?`),
+      approximation (`~`), or both (`%`).
+    * an integer field with the suffix `__dt_precision__int` to capture the
+      precision of the original EDTF date
 
     Emits a warning and skips any EDTF fields that cannot be represented
     as Solr dates (e.g., exponential years, years with more than four digits),
@@ -61,7 +65,7 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
         edtf_string = ctx.doc[edtf_name]
         name = edtf_name.replace('__edtf', '')
         try:
-            edtf: EDTFObject = parse_edtf(edtf_string)
+            edtf: EDTFObject = parse_edtf(str(edtf_string))
             return {
                 name + '__dt': solr_date(edtf),
                 name + '__dt_is_uncertain': edtf.is_uncertain,
