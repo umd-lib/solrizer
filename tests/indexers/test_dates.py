@@ -1,14 +1,10 @@
 from collections.abc import Iterable
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 from edtf import EDTFParseException, parse_edtf
 from markdown_to_data import Markdown
-from plastron.models import ContentModeledResource
-from plastron.repo import Repository, RepositoryResource
 
-from solrizer.indexers import IndexerContext
 from solrizer.indexers.dates import UnsupportedEDTFValue, date_fields, solr_date, get_precision
 
 DOCS_DIR = Path(__file__).parents[2] / 'docs'
@@ -72,22 +68,6 @@ EDTF_PRECISIONS = get_param_set_from_markdown(
     file=(DOCS_DIR / 'EDTFtoDateRange.md'),
     columns=['EDTF', 'Precision'],
 )
-
-
-@pytest.fixture
-def context_with_date():
-    def _context(edtf_value):
-        return IndexerContext(
-            repo=MagicMock(spec=Repository),
-            resource=MagicMock(spec=RepositoryResource),
-            model_class=ContentModeledResource,
-            doc={
-                'date__edtf': edtf_value,
-            },
-            config={},
-        )
-
-    return _context
 
 
 @pytest.mark.parametrize(
