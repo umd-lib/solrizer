@@ -17,11 +17,16 @@ Output field patterns:
 """
 
 import logging
+import re
+from calendar import month_name
 from datetime import datetime
+from typing import NamedTuple
 
 from edtf import (parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, UncertainOrApproximate, Interval,
                   Level2Interval, Season, Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime,
                   PartialUncertainOrApproximate, OneOfASet, Consecutives)
+from humanize import ordinal
+
 from solrizer.indexers import IndexerContext, SolrFields
 from solrizer.indexers.utils import solr_datetime
 
@@ -66,13 +71,18 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
         name = edtf_name.replace('__edtf', '')
         try:
             edtf: EDTFObject = parse_edtf(str(edtf_string))
-            return {
+            fields = {
                 name + '__dt': solr_date(edtf),
                 name + '__dt_is_uncertain': edtf.is_uncertain,
                 name + '__dt_is_approximate': edtf.is_approximate,
                 name + '__dt_is_uncertain_and_approximate': edtf.is_uncertain_and_approximate,
                 name + '__dt_precision__int': get_precision(edtf),
             }
+            if facetable_date := _get_facetable_date(edtf):
+                date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}_', suffix='__facet')
+                fields.update(date_facets)
+
+            return fields
         except UnsupportedEDTFValue as e:
             logger.warning(f'Cannot convert "{edtf_string}" in field {edtf_name} to a Solr date: {e.reason}')
         except EDTFParseException:
@@ -170,6 +180,113 @@ def _get_upper_and_lower_precisions(edtf: Interval | Consecutives):
         get_precision(edtf.upper),
     ]
     return [p for p in precisions if p is not None]
+
+
+def _get_facetable_date(edtf: EDTFObject) -> Date | None:
+    match edtf:
+        case Date():
+            return edtf
+        case DateAndTime():
+            return edtf.date
+        case _:
+            return None
+
+
+class EDTFFacetValue(NamedTuple):
+    sort_value: str
+    label: str
+
+    def __str__(self):
+        return f'{self.sort_value}|{self.label}'
+
+
+SPECIFIED_MILLENNIUM = re.compile(r'\d\d\d[\dX]|\d\d[\dX]X|\d[\dX]XX')
+SPECIFIED_CENTURY = re.compile(r'\d\d\d[\dX]|\d\d[\dX]X')
+SPECIFIED_DECADE = re.compile(r'\d\d\d[\dX]')
+SPECIFIED_YEAR = re.compile(r'\d\d\d')
+UNSPECIFIED_VALUE = EDTFFacetValue('Unspecified', 'Unspecified')
+
+
+class EDTFFacets:
+    def __init__(self, edtf_value: Date):
+        self._date = edtf_value
+        self._year = self._date.year
+
+    @property
+    def millennium(self) -> EDTFFacetValue:
+        if self._year and SPECIFIED_MILLENNIUM.match(self._year):
+            y = self._year[0:1]
+            millennium = ordinal(int(y) + 1)
+            return EDTFFacetValue(
+                f'{y}XXX',
+                f'{millennium} Millennium ({y}000-{y}999)',
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    @property
+    def century(self) -> EDTFFacetValue:
+        if self._year and SPECIFIED_CENTURY.match(self._year):
+            yy = self._year[0:2]
+            century = ordinal(int(yy) + 1)
+            return EDTFFacetValue(
+                f'{yy}XX',
+                f'{century} Century ({yy}00-{yy}99)',
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    @property
+    def decade(self) -> EDTFFacetValue:
+        if self._year and SPECIFIED_DECADE.match(self._year):
+            yyy = self._year[0:3]
+            decade = f'{yyy}0s'.removeprefix('0').removeprefix('0')
+            return EDTFFacetValue(
+                f'{yyy}X',
+                f'{decade} ({yyy}0-{yyy}9)',
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    @property
+    def year(self) -> EDTFFacetValue:
+        if self._year and SPECIFIED_YEAR.match(self._year):
+            return EDTFFacetValue(
+                self._year,
+                self._year.lstrip('0'),
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    @property
+    def month(self) -> EDTFFacetValue:
+        if not isinstance(self._date, Season) and self._date.month and 'X' not in self._date.month:
+            return EDTFFacetValue(
+                str(self._date.month),
+                month_name[int(str(self._date.month))],
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    @property
+    def day(self) -> EDTFFacetValue:
+        if self._date.day and 'X' not in self._date.day:
+            return EDTFFacetValue(
+                str(self._date.day),
+                str(self._date.day).lstrip('0'),
+            )
+        else:
+            return UNSPECIFIED_VALUE
+
+    def get_facets(self, prefix: str = '', suffix: str = ''):
+        return {
+            f'{prefix}millennium{suffix}': str(self.millennium),
+            f'{prefix}century{suffix}': str(self.century),
+            f'{prefix}decade{suffix}': str(self.decade),
+            f'{prefix}year{suffix}': str(self.year),
+            f'{prefix}month{suffix}': str(self.month),
+            f'{prefix}day{suffix}': str(self.day),
+        }
 
 
 class UnsupportedEDTFValue(ValueError):
