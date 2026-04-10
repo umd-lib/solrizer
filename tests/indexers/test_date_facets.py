@@ -110,4 +110,4 @@ def test_edtf_facets_class(edtf_string, expected_facets):
 def test_date_fields_facets(context_with_date, edtf_string, expected_facets):
     fields = date_fields(context_with_date(edtf_string))
     for key, value in expected_facets.items():
-        assert fields[f'date_{key}__facet'] == value
+        assert fields[f'date__{key}__facet'] == value
