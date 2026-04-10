@@ -79,7 +79,7 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
                 name + '__dt_precision__int': get_precision(edtf),
             }
             if facetable_date := _get_facetable_date(edtf):
-                date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}_', suffix='__facet')
+                date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}__', suffix='__facet')
                 fields.update(date_facets)
 
             return fields
