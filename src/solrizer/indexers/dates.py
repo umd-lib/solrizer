@@ -14,6 +14,31 @@ Output field patterns:
 | `object__{attr}__dt_is_approximate`               | `bool`      | boolean        |
 | `object__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
 | `object__{attr}__dt_precision`                    | `int`       | integer        |
+| `object__{attr}__millennium__facet`               | `str`       | string         |
+| `object__{attr}__century__facet`                  | `str`       | string         |
+| `object__{attr}__decade__facet`                   | `str`       | string         |
+| `object__{attr}__year__facet`                     | `str`       | string         |
+| `object__{attr}__month__facet`                    | `str`       | string         |
+| `object__{attr}__day__facet`                      | `str`       | string         |
+
+The facet field values are formatted in two parts: a "sort value" used to ensure that
+a lexicographic sort of the values results in a chronological sort, and a "label" that
+is intended to be displayed via any UIs that consume these fields.
+
+| Facet level | Sort value pattern | Label pattern              | Example sort value | Example label              |
+|-------------|--------------------|----------------------------|--------------------|----------------------------|
+| millennium  | `YXXX`             | Yth Millennium (Y000-Y999) | `1XXX`             | 2nd Millennium (1000-1999) |
+| century     | `YYXX`             | YYth Century (YY00-YY99)   | `19XX`             | 20th Century (1900-1999)   |
+| decade      | `YYYX`             | YYY0s (YYY0-YYY9)          | `194X`             | 1940s (1940-1949)          |
+| year        | `YYYY`             | YYYY                       | `1944`             | 1944                       |
+| month       | `MM`               | Month                      | `06`               | June                       |
+| day         | `DD`               | D                          | `06`               | 6                          |
+
+The sort value and label are combined using a pipe character (`|`) and added to the
+Solr document as a single string (e.g., `19XX|20th Century (1900-1999)`).
+
+For any level, if the date metadata does not map to a definite value for that level,
+the string "Unspecified" is used for both the facet sort value and label.
 """
 
 import logging
@@ -51,8 +76,8 @@ PRECISION_VALUES = {
 def date_fields(ctx: IndexerContext) -> SolrFields:
     """For any EDTF field in the index document (i.e., one whose name ends
     with `__edtf`) creates a corresponding `__dt` field with a value that
-    is parseable by Solr as a date or date range. Also, populates four other
-    fields:
+    is parseable by Solr as a date or date range. Also, populates up to ten
+    other fields:
 
     * three boolean flag fields with the suffixes `__dt_is_uncertain`,
       `__dt_is_approximate`,and `__dt_is_uncertain_and_approximate` that
@@ -60,6 +85,8 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
       approximation (`~`), or both (`%`).
     * an integer field with the suffix `__dt_precision__int` to capture the
       precision of the original EDTF date
+    * for singular dates, six facet fields to support "drill-down" dependent
+      faceting from low (millennium) to high (day) precision
 
     Emits a warning and skips any EDTF fields that cannot be represented
     as Solr dates (e.g., exponential years, years with more than four digits),
@@ -79,7 +106,7 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
                 name + '__dt_precision__int': get_precision(edtf),
             }
             if facetable_date := _get_facetable_date(edtf):
-                date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}_', suffix='__facet')
+                date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}__', suffix='__facet')
                 fields.update(date_facets)
 
             return fields
@@ -193,8 +220,12 @@ def _get_facetable_date(edtf: EDTFObject) -> Date | None:
 
 
 class EDTFFacetValue(NamedTuple):
+    """Pairing of the sort value and label for a given date facet value.
+    Stringifies to `{sort_value}|{label}`."""
     sort_value: str
+    """Value used to ensure proper lexicographic sorting (e.g., `19XX`)."""
     label: str
+    """Human-friendly label for use by UIs (e.g., `20th Century (1900-1999)`)."""
 
     def __str__(self):
         return f'{self.sort_value}|{self.label}'
