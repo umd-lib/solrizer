@@ -5,7 +5,7 @@ dependencies = [
     "beautifulsoup4",
     "codetiming",
     "configurenv",
-    "edtf",
+    "edtf>=5.0.1",
     "flask",
     "humanize",
     "jq",
