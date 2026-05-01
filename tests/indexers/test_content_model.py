@@ -6,8 +6,8 @@ import pytest
 from plastron.client import Endpoint
 from plastron.models import ContentModeledResource
 from plastron.models.authorities import Subject, UMD_ARCHIVAL_COLLECTIONS
-from plastron.models.page import File
-from plastron.models.umd import Item
+from plastron.models.page import File, Page
+from plastron.models.umd import Item, AdminSet
 from plastron.namespaces import umdtype, rdf, xsd, dcterms, owl
 from plastron.rdfmapping.descriptors import DataProperty
 from plastron.rdfmapping.properties import RDFDataProperty, RDFObjectProperty
@@ -423,3 +423,18 @@ def test_get_model_fields_display_value_without_resource_language():
     obj = SimpleModel(title=[Literal('Hund', lang='de'), Literal('Dog', 'en')])
     fields = get_model_fields(obj, mock_repo)
     assert fields['title__display'] == ['[@de]Hund', '[@en]Dog']
+
+
+@pytest.mark.parametrize(
+    ('obj', 'expected_field', 'expected_value'),
+    [
+        (Item(title=Literal('bar')), 'object__title__txt', 'bar'),
+        (Page(title=Literal('foo')), 'page__title__txt', 'foo'),
+        (File(filename=Literal('foo.txt')), 'file__filename__str', 'foo.txt'),
+        (AdminSet(title=Literal('stuff')), 'adminset__title__txt', 'stuff'),
+    ]
+)
+def test_content_model_fields(get_mock_context, obj, expected_field, expected_value):
+    doc = content_model_fields(get_mock_context(obj))
+    assert expected_field in doc
+    assert doc[expected_field] == expected_value

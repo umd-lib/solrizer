@@ -119,12 +119,23 @@ SKIP_FIELDS_BY_MODEL = {
 }
 """Field names that should be skipped for each model."""
 
+PREFIX_BY_MODEL = {
+    'Issue': 'object__',
+    'Item': 'object__',
+    'Letter': 'object__',
+    'Poster': 'object__',
+    'Page': 'page__',
+    'File': 'file__',
+    'AdminSet': 'adminset__',
+}
+"""Field name prefix to use for each model."""
+
 
 def content_model_fields(ctx: IndexerContext) -> SolrFields:
     """Indexer function that adds fields generated from the indexed
     resource's content model. Registered as the entry point
     *content_model* in the `solrizer_indexers` entry point group."""
-    return get_model_fields(ctx.obj, repo=ctx.repo, prefix='object__')
+    return get_model_fields(ctx.obj, repo=ctx.repo, prefix=get_prefix(ctx.model_class))
 
 
 def get_model_fields(obj: RDFResourceBase, repo: Repository, prefix: str = '') -> SolrFields:
@@ -312,14 +323,14 @@ def get_object_fields(prop: RDFObjectProperty, repo: Repository, prefix: str = '
             fields.update(get_model_fields(prop.object, repo=repo, prefix=prefix + prop.attr_name + '__'))
     elif prop.embedded:
         fields[prefix + prop.attr_name] = get_child_documents(
-            prefix=prop.object_class.__name__.lower() + '__',
+            prefix=get_prefix(prop.object_class),
             objects=prop.objects,
             repo=repo,
         )
     else:
         # linked object
         fields[prefix + prop.attr_name] = get_child_documents(
-            prefix=prop.object_class.__name__.lower() + '__',
+            prefix=get_prefix(prop.object_class),
             objects=get_linked_objects(prop, repo),
             repo=repo,
         )
@@ -350,6 +361,14 @@ def get_field(
         return {name: values}
     else:
         return {name: values[0]}
+
+
+def get_prefix(model_class: ContentModeledResource) -> str:
+    """Get the prefix for the given `model_class`. If there is no matching
+    prefix in the `PREFIX_BY_MODEL` dictionary, return the model class name,
+    converted to lowercase and appended with `__`."""
+    model_name: str = model_class.__name__
+    return PREFIX_BY_MODEL.get(model_name, model_name.lower() + '__')
 
 
 def shorten_uri(uri: str) -> str | None:
