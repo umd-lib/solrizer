@@ -40,7 +40,7 @@ Solr document as a single string (e.g., `19XX|20th Century (1900-1999)`).
 
 For any level, if the date metadata does not map to a definite value for that level,
 the string "Unspecified" is used for both the facet sort value and label.
-"""
+"""  # noqa: E501
 
 import logging
 import re
