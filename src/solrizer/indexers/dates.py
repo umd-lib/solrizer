@@ -13,7 +13,8 @@ Output field patterns:
 | `object__{attr}__dt_is_uncertain`                 | `bool`      | boolean        |
 | `object__{attr}__dt_is_approximate`               | `bool`      | boolean        |
 | `object__{attr}__dt_is_uncertain_and_approximate` | `bool`      | boolean        |
-| `object__{attr}__dt_precision`                    | `int`       | integer        |
+| `object__{attr}__dt_precision__int`               | `int`       | integer        |
+| `object__{attr}__dt_range_size__int`              | `int`       | integer        |
 | `object__{attr}__millennium__facet`               | `str`       | string         |
 | `object__{attr}__century__facet`                  | `str`       | string         |
 | `object__{attr}__decade__facet`                   | `str`       | string         |
@@ -25,31 +26,31 @@ The facet field values are formatted in two parts: a "sort value" used to ensure
 a lexicographic sort of the values results in a chronological sort, and a "label" that
 is intended to be displayed via any UIs that consume these fields.
 
-| Facet level | Sort value pattern | Label pattern              | Example sort value | Example label              |
-|-------------|--------------------|----------------------------|--------------------|----------------------------|
-| millennium  | `YXXX`             | Yth Millennium (Y000-Y999) | `1XXX`             | 2nd Millennium (1000-1999) |
-| century     | `YYXX`             | YYth Century (YY00-YY99)   | `19XX`             | 20th Century (1900-1999)   |
-| decade      | `YYYX`             | YYY0s (YYY0-YYY9)          | `194X`             | 1940s (1940-1949)          |
-| year        | `YYYY`             | YYYY                       | `1944`             | 1944                       |
-| month       | `MM`               | Month                      | `06`               | June                       |
-| day         | `DD`               | D                          | `06`               | 6                          |
+| Facet level | Sort value pattern | Label pattern                    | Example sort value | Example label              |
+|-------------|--------------------|----------------------------------|--------------------|----------------------------|
+| millennium  | `YXXX`             | (Y + 1)th Millennium (Y000-Y999) | `1XXX`             | 2nd Millennium (1000-1999) |
+| century     | `YYXX`             | (YY + 1)th Century (YY00-YY99)   | `19XX`             | 20th Century (1900-1999)   |
+| decade      | `YYYX`             | YYY0s (YYY0-YYY9)                | `194X`             | 1940s (1940-1949)          |
+| year        | `YYYY`             | YYYY                             | `1944`             | 1944                       |
+| month       | `MM`               | Month                            | `06`               | June                       |
+| day         | `DD`               | D                                | `06`               | 6                          |
 
 The sort value and label are combined using a pipe character (`|`) and added to the
 Solr document as a single string (e.g., `19XX|20th Century (1900-1999)`).
 
 For any level, if the date metadata does not map to a definite value for that level,
 the string "Unspecified" is used for both the facet sort value and label.
-"""
+"""  # noqa: E501
 
 import logging
 import re
 from calendar import month_name
-from datetime import datetime
+from datetime import datetime, date
 from typing import NamedTuple
 
 from edtf import (parse_edtf, Date, UnspecifiedIntervalSection, EDTFObject, UncertainOrApproximate, Interval,
                   Level2Interval, Season, Unspecified, ExponentialYear, LongYear, EDTFParseException, DateAndTime,
-                  PartialUncertainOrApproximate, OneOfASet, Consecutives)
+                  PartialUncertainOrApproximate, OneOfASet, Consecutives, struct_time_to_date)
 from humanize import ordinal
 
 from solrizer.indexers import IndexerContext, SolrFields
@@ -76,8 +77,8 @@ PRECISION_VALUES = {
 def date_fields(ctx: IndexerContext) -> SolrFields:
     """For any EDTF field in the index document (i.e., one whose name ends
     with `__edtf`) creates a corresponding `__dt` field with a value that
-    is parseable by Solr as a date or date range. Also, populates up to ten
-    other fields:
+    is parseable by Solr as a date or date range. Also, populates up to
+    eleven other fields:
 
     * three boolean flag fields with the suffixes `__dt_is_uncertain`,
       `__dt_is_approximate`,and `__dt_is_uncertain_and_approximate` that
@@ -85,6 +86,10 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
       approximation (`~`), or both (`%`).
     * an integer field with the suffix `__dt_precision__int` to capture the
       precision of the original EDTF date
+    * an integer field with the suffix `__dt_range_size__int` the contains
+      the number of days covered by the EDTF date; if for any reason it
+      cannot calculate this value from the EDTF date, it emits a warning and
+      sets this field to `None` (see `range_size` for more details)
     * for singular dates, six facet fields to support "drill-down" dependent
       faceting from low (millennium) to high (day) precision
 
@@ -104,6 +109,7 @@ def date_fields(ctx: IndexerContext) -> SolrFields:
                 name + '__dt_is_approximate': edtf.is_approximate,
                 name + '__dt_is_uncertain_and_approximate': edtf.is_uncertain_and_approximate,
                 name + '__dt_precision__int': get_precision(edtf),
+                name + '__dt_range_size__int': range_size(edtf),
             }
             if facetable_date := _get_facetable_date(edtf):
                 date_facets = EDTFFacets(facetable_date).get_facets(prefix=f'{name}__', suffix='__facet')
@@ -125,6 +131,33 @@ def strict_range(edtf: EDTFObject) -> str:
     begin = YMD_STRING.format(*edtf.lower_strict()[:3])
     end = YMD_STRING.format(*edtf.upper_strict()[:3])
     return f'[{begin} TO {end}]'
+
+
+def range_size(edtf: EDTFObject) -> int | None:
+    """Get the number of days between the upper and lower bounds of the given
+    EDTF date. If the EDTF expression is unbounded on either side, this function
+    sets the begin or end date to for the purposes of its calculation to
+    0001-01-01 or 9999-12-31, respectively.
+
+    If the EDTF expression falls outside the range year 1 to year 9999 (i.e.,
+    it is not expressible via a `time.struct_time` object), this function returns
+    `None`."""
+
+    try:
+        if isinstance(edtf, Interval) and isinstance(edtf.lower, UnspecifiedIntervalSection):
+            begin = date(1, 1, 1)
+        else:
+            begin = struct_time_to_date(edtf.lower_strict())
+
+        if isinstance(edtf, Interval) and isinstance(edtf.upper, UnspecifiedIntervalSection):
+            end = date(9999, 12, 31)
+        else:
+            end = struct_time_to_date(edtf.upper_strict())
+    except ValueError as e:
+        logger.warning(f'Unable to calculate date range size for EDTF expression "{edtf}": {e}')
+        return None
+
+    return (end - begin).days + 1
 
 
 def solr_date(edtf_value: str | EDTFObject, partial_ua_method: str = 'lower_strict') -> str:

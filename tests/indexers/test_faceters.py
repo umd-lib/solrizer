@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+import httpretty
 import pytest
 from plastron.models import ContentModeledResource
 from plastron.models.newspaper import Issue
@@ -175,7 +176,13 @@ def test_censorship_facet(get_mock_context, description, expected_value):
     assert faceter.get_values() == expected_value
 
 
-def test_issue_resource_type_facet_always_newspapers(get_mock_context):
+@httpretty.activate()
+def test_issue_resource_type_facet_always_newspapers(get_mock_context, datadir, register_uri_for_reading):
+    register_uri_for_reading(
+        uri='http://vocab.lib.umd.edu/form#',
+        content_type='application/ld+json',
+        body=(datadir / 'form.jsonld').read_text(),
+    )
     obj = Issue()
     faceter = ResourceTypeFacet(get_mock_context(obj))
     assert faceter.get_values() == ['Newspapers']
