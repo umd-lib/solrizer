@@ -4,6 +4,6 @@
 # This Dockerfile provides the appropriate environment for building and testing
 # the application. It should _not_ be used for creating Docker images for use
 # in production.
-FROM python:3.12.6-slim
+FROM python:3.14.9-slim
 
 RUN apt-get update && apt-get install -y git && apt-get clean
