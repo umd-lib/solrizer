@@ -1,8 +1,9 @@
 [project]
 name = "solrizer"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
     "beautifulsoup4",
+    "certifi>=2026.10.19",
     "codetiming",
     "configurenv",
     "edtf>=5.0.1",
@@ -10,10 +11,10 @@ dependencies = [
     "humanize",
     "jq",
     "langcodes",
-    "plastron-client>=4.7.0",
-    "plastron-models>=4.6.2",
-    "plastron-rdf>=4.5.1",
-    "plastron-repo>=4.7.0",
+    "plastron-client>=4.8.2",
+    "plastron-models>=4.8.2",
+    "plastron-rdf>=4.8.2",
+    "plastron-repo>=4.8.2",
     "psutil",
     "pyyaml",
     "python-dotenv",
@@ -28,7 +29,7 @@ dependencies = [
     "uritemplate",
     "waitress",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.14.9"
 
 [project.optional-dependencies]
 # to use Redis as the caching backend

@@ -1,12 +1,10 @@
-FROM python:3.12.6-slim
+FROM python:3.14.9-slim
 
 EXPOSE 5000
 
 ENV FLASK_DEBUG=0
 
 WORKDIR /opt/solrizer
-
-RUN apt-get update && apt-get install -y git && apt-get clean
 
 COPY src pyproject.toml /opt/solrizer/
 
