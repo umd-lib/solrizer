@@ -101,7 +101,7 @@ pipeline {
           apt-get update && apt-get install -y git && apt-get clean
           . .venv/bin/activate
 
-          pip install -e .[test]
+          pip install -e . --group dev
 
           # install patched version of python-edtf (see https://umd-dit.atlassian.net/browse/LIBFCREPO-1633)
           pip install --force-reinstall git+https://github.com/peichman-umd/python-edtf.git@68f0b36deee03a355e6bec9f255d718f0d9f032b
