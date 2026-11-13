@@ -1,6 +1,16 @@
+[build-system]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+platforms = ["any"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+
 [project]
 name = "solrizer"
-version = "1.5.1"
+dynamic = ["version"]
 dependencies = [
     "beautifulsoup4",
     "certifi>=2026.10.19",
@@ -36,17 +46,17 @@ requires-python = ">=3.14.9"
 redis = [
     "redis",
 ]
-test = [
+
+[dependency-groups]
+dev = [
     "httpretty",
     "markdown-to-data",
+    "pdoc",
     "pytest",
     "pytest-cov",
     "pytest-datadir",
     "pycodestyle",
     "ruff",
-]
-dev = [
-    "pdoc",
 ]
 
 [project.scripts]
